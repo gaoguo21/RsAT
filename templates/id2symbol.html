@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}ID to Symbol Converter{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='id2symbol.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="id2symbol-wrapper">
+  <div class="id2symbol">
+    <main class="page">
+      <header class="hero">
+        <h1>ID to Symbol</h1>
+        <p>Upload a file with gene IDs and convert ENSG/Entrez to gene symbols.</p>
+      </header>
+
+      <section class="card">
+        <div class="field">
+          <label>
+            Gene ID file
+            <span class="help" data-tooltip="The CSV or tab separated TXT file should contain ENSG or Entrez IDs in the first column. Headers can be any name.">?</span>
+          </label>
+          <input id="id-file" type="file" accept=".csv,.txt,.xls,.xlsx" />
+        </div>
+
+        <div class="field">
+          <label for="organism">Organism</label>
+          <select id="organism">
+            <option value="human">Human</option>
+            <option value="mouse">Mouse</option>
+          </select>
+        </div>
+
+        <div class="actions">
+          <button id="run-btn" class="primary">Convert</button>
+          <button id="reset-btn" type="button">Reset</button>
+          <button id="download-btn" type="button" disabled>Download results</button>
+        </div>
+
+        <p id="status" class="status">
+          <span id="warn-icon" class="warn-icon hidden" data-tooltip="Some gene IDs could not be mapped. Check the ID type and organism.">!</span>
+          <span id="warn-text" class="warn-text hidden">Some gene IDs could not be mapped. Check the ID type and organism.</span>
+          <span id="status-text"></span>
+        </p>
+
+        <div class="status-bar" id="status-bar">
+          <div class="status-bar-fill" id="status-bar-fill"></div>
+        </div>
+
+        <div class="status-bar-meta">
+          <span id="status-percent">0%</span>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='id2symbol.js') }}"></script>
+{% endblock %}

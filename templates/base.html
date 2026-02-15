@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>{% block title %}RNA-seq Analysis Tools{% endblock %}</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f8f9fb;
+      color: #111;
+    }
+
+    /* ===== NAVBAR ===== */
+    .navbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 15px 30px;
+      height: 70px;
+      border-bottom: 1px solid #ddd;
+      background: white;
+    }
+
+    .logo img {
+      height: 70px;
+      width: auto;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 12px;
+    }
+
+    /* nav items styled like your buttons */
+    .nav-links a {
+      text-decoration: none;
+      border: none;
+      background: #f2f4f8;
+      padding: 14px 26px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 16px;
+      color: #111;
+      display: inline-block;
+    }
+
+    .nav-links a:hover {
+      background: #e3e8f3;
+    }
+
+    .nav-links a.active {
+      background: #2e62ff;
+      color: white;
+    }
+
+    /* ===== MAIN PAGE ===== */
+    .container {
+      max-width: 1100px;
+      margin: auto;
+      padding: 30px 15px;
+    }
+
+    .hero {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .hero h1 {
+      font-size: 48px;
+      margin-bottom: 10px;
+    }
+
+.hero h1 span {
+    display:block;
+    font-size:35px;
+    color:#3b6df6;
+    margin-top:10px;
+}
+
+
+.hero-desc {
+  max-width: 820px;
+  margin: 16px auto 30px;
+  font-size: 15px;
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+
+    .card {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      padding: 25px;
+      transition: all 0.25s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+      border-color: #2e62ff;
+    }
+
+    .card h3 {
+      font-size: 22px;
+      font-weight: 800;
+      color: #000;
+      margin-bottom: 12px;
+    }
+
+    .card p {
+      font-size: 16px;
+      line-height: 1.7;
+      color: #222;
+      font-weight: 500;
+    }
+
+    /* ===== FOOTER ===== */
+    .footer {
+      text-align: center;
+      padding: 15px;
+      background: white;
+      border-top: 1px solid #ddd;
+      font-size: 14px;
+      color: #555;
+    }
+
+    .footer-logo {
+      height: 18px;
+      width: auto;
+      vertical-align: middle;
+      margin: 0 6px;
+    }
+  </style>
+
+  {% block extra_css %}{% endblock %}
+</head>
+
+<body>
+  <!-- ===== NAVBAR ===== -->
+  <div class="navbar">
+    <div class="logo">
+      <img src="{{ url_for('static', filename='images/logoV3.png') }}" alt="RNA-seq Analysis Logo" />
+    </div>
+
+    <div class="nav-links">
+      <a href="{{ url_for('home') }}" class="{% if request.path == '/' %}active{% endif %}">Main</a>
+      <a href="{{ url_for('deg_page') }}" class="{% if request.path.startswith('/deg') %}active{% endif %}">DEG</a>
+      <a href="{{ url_for('pathway_page') }}" class="{% if request.path.startswith('/pathway') %}active{% endif %}">Pathway</a>
+      <a href="{{ url_for('id2symbol_page') }}" class="{% if request.path.startswith('/id2symbol') %}active{% endif %}">ID2Symbol</a>
+      <a href="{{ url_for('ssgsea_page') }}" class="{% if request.path.startswith('/ssgsea') %}active{% endif %}">ssGSEA</a>
+      {# Extraction will be added later #}
+    </div>
+  </div>
+
+  {% block content %}{% endblock %}
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="footer">
+    &copy; 2026
+    <img class="footer-logo" src="{{ url_for('static', filename='images/logoV3.png') }}" alt="RNA-seq Analysis Logo" />
+    | All Rights Reserved | rsat2026@gmail.com<br />
+    The tools are provided as-is for research purposes only. Users are responsible for their own data and its security.
+  </footer>
+
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

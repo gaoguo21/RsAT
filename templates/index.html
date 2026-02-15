@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}RNA-seq Analysis Tools{% endblock %}
+
+h{% block content %}
+<div class="container">
+
+<div class="hero">
+  <div class="hero-inner">
+    <h1 class="hero-title">
+      RNA-seq Analysis Tools
+      <span class="hero-subtitle">Simple & Free</span>
+    </h1>
+
+    <p class="hero-desc">
+      This free RNA-seq analysis platform provides simple, beginner friendly tools for common analyses without coding or complex software installation. All analyses are performed using standard R based workflows.
+    </p>
+
+  </div>
+</div>
+
+  <div class="cards">
+    <div class="card">
+      <h3>DEG - Differential Gene Expression Analysis</h3>
+      <p>
+        Identify genes that are significantly differentially expressed between experimental conditions.
+        This tool compares expression levels, calculates fold changes, p-values and adjusted pValues.
+      </p>
+    </div>
+
+    <div class="card">
+      <h3>Pathway Analysis</h3>
+      <p>
+        Analyze biological pathways enriched in your gene list to understand functional meaning.
+        This tool links differential expression results to pathways, processes, and molecular functions for interpretation.
+      </p>
+    </div>
+
+    <div class="card">
+      <h3>ID2Symbol - Mapping gene ID to symbol</h3>
+      <p>
+        A tool that maps Ensembl Gene IDs (ENSG) and Entrez Gene IDs to official gene symbols.
+        It enables standardized gene annotation and conversion between identifier systems.
+      </p>
+    </div>
+
+    <div class="card">
+      <h3>ssGSEA-single sample Gene Set Enrichment Analysis</h3>
+      <p>
+  A tool that calculate an enrichment score for a predefined gene set. 
+It ranks all genes in a sample by expression and derives a score reflecting the relative enrichment of the predefined gene set. 
+      </p>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

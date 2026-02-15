@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}RNA-seq Group Comparison{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='deg.css') }}">
+{% endblock %}
+{% block content %}
+<div class="deg-wrapper">
+  <div class="deg">
+    <main class="page">
+      <header class="hero">
+        <h1>Differential Gene Expression Analysis</h1>
+        <p>Upload a raw read count file, assign samples to Group A/B, and export log2FC, pvalue and adjusted p-values.</p>
+      </header>
+
+      <section class="card">
+        <div class="field">
+          <label for="file">
+            Counts file (genes in first column)
+            <span class="help" data-tooltip="Upload a CSV file of raw RNA-seq read counts with genes in rows and samples in columns. The first column should contain gene identifiers (gene symbols or IDs), and remaining columns should contain integer read counts. Do not upload normalized values (TPM/FPKM).">?</span>
+          </label>
+          <input id="file" type="file" accept=".csv" />
+        </div>
+
+        <div class="field">
+          <label for="method">Method
+<span class="help" data-tooltip="DESeq2 and edgeR are standard RNA-seq statistical methods that compare read counts between groups to identify genes with significant expression changes. DESeq2 is recommended due to its robust default settings. edgeR can perform well with small sample sizes.">?</span>
+ </label>
+          <select id="method">
+             <option value="deseq2">DESeq2</option>
+            <option value="edger">edgeR</option>
+             </select>
+        </div>
+
+        <div class="field">
+          <label for="min-count">Minimum total count per gene</label>
+          <input id="min-count" type="number" min="0" value="2" />
+        </div>
+
+        <div class="actions">
+          <button id="load-btn" class="primary">Load samples</button>
+          <button id="reset-btn" type="button">Reset</button>
+        </div>
+
+        <p id="status" class="status"></p>
+
+        <div class="status-bar" id="status-bar">
+          <div class="status-bar-fill" id="status-bar-fill"></div>
+        </div>
+
+        <div class="status-bar-meta">
+          <span id="status-percent">0%</span>
+        </div>
+      </section>
+
+      <section id="samples-card" class="card hidden">
+        <div class="samples-header">
+          <h2>Assign groups</h2>
+          <div class="legend">
+            <span>Group A = reference</span>
+            <span>Group B = comparison</span>
+          </div>
+        </div>
+
+        <div id="samples-list" class="samples-list"></div>
+
+        <div class="actions">
+          <button id="export-btn" class="primary">Run</button>
+          <button id="download-btn" type="button" disabled>Download results</button>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+{% endblock %}
+
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='deg.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}ssGSEA Scoring{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='ssgsea.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="ssgsea-wrapper">
+  <div class="ssgsea">
+    <main class="page">
+      <header class="hero">
+        <h1>ssGSEA Scoring</h1>
+        <p>Upload an RPKM expression matrix and a GMT file to calculate ssGSEA scores.</p>
+      </header>
+
+      <section class="card">
+        <div class="field">
+          <label>
+            Expression matrix
+            <span class="help" data-tooltip="CSV or tab separated TXT file. First column must be gene names or gene IDs. Values should be RPKM (not counts). Max file size 100 MB.">?</span>
+          </label>
+          <input id="expr-file" type="file" accept=".tsv,.csv,.zip" />
+        </div>
+
+        <div class="field">
+          <label>
+            Gene set GMT file
+            <span class="help" data-tooltip="GMT genes must match the first column in the expression matrix (gene name or gene ID). The GMT file should be a tab-separated text file defining gene sets for ssGSEA. Each line includes the gene set name, NA as a placeholder in the second column, and the gene symbols. For exmaple: Genesetname  NA   gene1   gene2  gene 3.  It can be created in any text editor (e.g., EditPad Lite8) and saved with a .gmt extension.">?</span>
+          </label>
+          <input id="gmt-file" type="file" accept=".gmt" />
+        </div>
+
+        <div class="actions">
+          <button id="run-btn" class="primary">Run ssGSEA</button>
+          <button id="reset-btn" type="button">Reset</button>
+          <button id="download-btn" type="button" disabled>Download results</button>
+        </div>
+
+        <p id="status" class="status">
+          <span id="warn-icon" class="warn-icon hidden" data-tooltip="Some gene sets have low overlap with your expression matrix. Check that gene IDs match.">!</span>
+          <span id="warn-text" class="warn-text hidden">Some gene sets have low overlap with your expression matrix. Check that gene IDs match.</span>
+          <span id="status-text"></span>
+        </p>
+
+        <div class="status-bar" id="status-bar">
+          <div class="status-bar-fill" id="status-bar-fill"></div>
+        </div>
+
+        <div class="status-bar-meta">
+          <span id="status-percent">0%</span>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='ssgsea.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Pathway/Enrichment Tool{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='pathway.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="pathway-wrapper">
+  <div class="pathway">
+    <main class="page">
+      <header class="hero">
+        <h1>Pathway Enrichment Analysis</h1>
+        <p>Upload a preranked file to perform pathway enrichment analysis.</p>
+      </header>
+
+      <section class="card">
+        <div class="field">
+          <label>
+            Preranked file
+            <span class="help" data-tooltip="The CSV or tab separated TXT file should contain gene names (col1) and fold change (col2), sorted from highest to lowest.">?</span>
+          </label>
+          <input id="gene-file" type="file" accept=".csv,.txt,.xls,.xlsx" />
+        </div>
+
+        <div class="field">
+          <label for="organism">Organism</label>
+          <select id="organism">
+            <option value="human">Human</option>
+            <option value="mouse">Mouse</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="library">Dataset
+          <span class="help" data-tooltip="Select a dataset collection for pathway analysis. The datasets listed here include commonly used gene sets, but many additional collections exist. You may also upload your own GMT file. A single GMT file can be used to evaluate a specific pathway or a user defined gene set.">?</span>
+     </label>
+          <select id="library">
+            <option value="kegg">KEGG</option>
+            <option value="reactome">Reactome</option>
+            <option value="hallmark">Hallmark</option>
+            <option value="go">GO</option>
+            <option value="biocarta">BioCarta</option>
+            <option value="custom">Single GMT</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>
+            Single GMT file (optional)
+            <span
+              class="help"
+              data-tooltip="Upload a downloaded GMT file or save your own gene marker sets (one set per line, tab-separated genes). Save the file as .gmt using EditPad Lite 8. Example:&#10;MY_MARKER_SET&#9;custom&#9;Gene1&#9;Gene2&#9;Gene3&#9;Gene4&#9;Gene5&#10"
+            >?</span>
+          </label>
+          <input id="gmt-file" type="file" accept=".gmt" />
+        </div>
+
+        <div class="actions">
+          <button id="run-btn" class="primary">Run enrichment</button>
+          <button id="reset-btn" type="button">Reset</button>
+          <button id="download-btn" type="button" disabled>Download results</button>
+        </div>
+
+        <p id="status" class="status">
+          <span id="warn-icon" class="warn-icon hidden" data-tooltip="No pathways detected. The gene list may be too short or lacks sufficient pathway overlap.">!</span>
+          <span id="warn-text" class="warn-text hidden">No pathways detected. The gene list may be too short or lacks sufficient pathway overlap.</span>
+        </p>
+
+        <div class="status-bar" id="status-bar">
+          <div class="status-bar-fill" id="status-bar-fill"></div>
+        </div>
+
+        <div class="status-bar-meta">
+          <span id="status-percent">0%</span>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='pathway.js') }}"></script>
+{% endblock %}
