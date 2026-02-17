@@ -9,59 +9,35 @@ import pandas as pd
 from flask import Blueprint, jsonify, request, send_file, current_app
 
 from tools.upload_utils import is_allowed_filename, save_bytes
+from utils.run_r import run_r_mamba  # ✅ fgsea/pathway uses micromamba env only
 
 pathway_bp = Blueprint("pathway", __name__)
 logger = logging.getLogger(__name__)
 
-# Absolute micromamba path for systemd/gunicorn reliability on EC2
-MICROMAMBA = "/usr/local/bin/micromamba"
-MICROMAMBA_ENV = "rnaenv"
-
-
-def run_r(script_path: str, *args: str) -> str:
-    """
-    Run an R script inside micromamba env and return stdout.
-    Raises RuntimeError with full stdout/stderr on failure.
-    """
-    cmd = [MICROMAMBA, "run", "-n", MICROMAMBA_ENV, "Rscript", script_path, *args]
-    res = subprocess.run(cmd, capture_output=True, text=True)
-
-    if res.returncode != 0:
-        raise RuntimeError(
-            "R execution failed.\n"
-            f"CMD: {' '.join(cmd)}\n\n"
-            f"STDOUT:\n{res.stdout}\n\n"
-            f"STDERR:\n{res.stderr}\n"
-        )
-    return res.stdout
-
 
 def _parse_ranked_text(text: str) -> List[Tuple[str, float]]:
-    """
-    Parse a ranked list from text:
-      - supports tab/comma/space separated
-      - expects at least 2 columns: gene and score (e.g., log2FC)
-      - skips header-ish lines if score isn't numeric
-    """
     rows: List[Tuple[str, float]] = []
     for line in text.splitlines():
         line = line.strip()
         if not line or line.startswith("#"):
             continue
-        # split by tab first, fallback to whitespace/comma
+
         if "\t" in line:
             parts = line.split("\t")
         elif "," in line:
             parts = line.split(",")
         else:
             parts = line.split()
+
         if len(parts) < 2:
             continue
+
         gene = str(parts[0]).strip()
         try:
             score = float(parts[1])
         except (TypeError, ValueError):
             continue
+
         if gene:
             rows.append((gene, score))
     return rows
@@ -69,7 +45,8 @@ def _parse_ranked_text(text: str) -> List[Tuple[str, float]]:
 
 def _parse_ranked_from_file(filename: str, raw: bytes) -> List[Tuple[str, float]]:
     ext = os.path.splitext(filename.lower())[1]
-    if ext in {".txt"}:
+
+    if ext == ".txt":
         return _parse_ranked_text(raw.decode("utf-8", errors="ignore"))
 
     if ext in {".csv", ".tsv"}:
@@ -77,8 +54,10 @@ def _parse_ranked_from_file(filename: str, raw: bytes) -> List[Tuple[str, float]
             df = pd.read_csv(io.BytesIO(raw), sep=None, engine="python")
         except Exception:
             df = pd.read_csv(io.BytesIO(raw))
+
         if df.shape[1] < 2:
             return []
+
         rows: List[Tuple[str, float]] = []
         for _, row in df.iterrows():
             gene = str(row.iloc[0]).strip()
@@ -99,7 +78,8 @@ def _project_root() -> str:
 
 def _run_r_enrichment(input_path: str, organism: str, library: str, gmt_path: Optional[str]) -> bytes:
     """
-    Runs r_scripts/enrichment.R inside micromamba env and returns the output CSV bytes.
+    Runs r_scripts/enrichment.R using micromamba env (rnaenv) so fgsea is available.
+    Returns output CSV bytes.
     """
     script_path = os.path.join(_project_root(), "r_scripts", "enrichment.R")
     if not os.path.exists(script_path):
@@ -107,12 +87,18 @@ def _run_r_enrichment(input_path: str, organism: str, library: str, gmt_path: Op
 
     with tempfile.TemporaryDirectory() as tmpdir:
         out_path = os.path.join(tmpdir, "pathway_results.csv")
-
-        # Pass "" if no custom GMT provided
         gmt_arg = gmt_path or ""
 
-        # IMPORTANT: pass absolute paths to avoid cwd issues in gunicorn/systemd
-        run_r(script_path, input_path, out_path, organism, library, gmt_arg)
+        try:
+            # ✅ ONLY pathway uses micromamba env
+            run_r_mamba(script_path, input_path, out_path, organism, library, gmt_arg)
+        except subprocess.CalledProcessError as exc:
+            msg = (exc.stderr or "").strip() or (exc.stdout or "").strip() or "Rscript failed."
+            logger.error("Pathway enrichment failed: %s", msg)
+            raise RuntimeError(msg) from exc
+        except FileNotFoundError as exc:
+            logger.error("Micromamba/Rscript runner not found.")
+            raise RuntimeError("Micromamba/Rscript runner not found.") from exc
 
         if not os.path.exists(out_path):
             raise RuntimeError("R finished without producing an output file.")
@@ -178,7 +164,6 @@ def run_pathway_job(job_id: str, job_dir: str, input_path: str, organism: str, l
             "download_url": f"/api/pathway/download/{job_id}",
         }
     finally:
-        # Cleanup uploaded inputs (privacy + disk)
         for path in (input_path, gmt_path):
             if path:
                 try:
@@ -225,7 +210,6 @@ def run():
 
     if gmt_file:
         if not is_allowed_filename(gmt_file.filename or "", {".gmt"}):
-            # Cleanup
             if input_path:
                 try:
                     os.remove(input_path)
@@ -269,7 +253,6 @@ def run():
             job_queue.finalize_job(job_id)
         return jsonify({"error": "No genes provided."}), 400
 
-    # Basic numeric validation
     fcs = [fc for _, fc in ranked]
     if any(not isinstance(fc, (int, float)) for fc in fcs):
         if input_path:
