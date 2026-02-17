@@ -17,7 +17,7 @@ def _env_int(name: str, default: int) -> int:
         return default
 
 
-app.config["MAX_CONTENT_LENGTH"] = _env_int("MAX_CONTENT_LENGTH", 100 * 1024 * 1024)
+app.config["MAX_CONTENT_LENGTH"] = _env_int("MAX_CONTENT_LENGTH", 200 * 1024 * 1024)
 app.config["UPLOAD_FOLDER"] = os.path.join(BASE_DIR, ".data", "uploads")
 app.config["ALLOWED_UPLOAD_EXTENSIONS"] = {".tsv", ".txt", ".csv", ".gmt"}
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
@@ -86,11 +86,29 @@ def legal_page():
     return render_template("legal.html")
 
 @app.route("/job/<job_id>/status")
-def job_status(job_id: str):
-    status = job_queue.get_public_status(job_id)
-    if not status:
-        return jsonify({"error": "Job not found."}), 404
-    return jsonify(status)
+def job_status(job_id):
+    job_queue = app.config["JOB_QUEUE"]
+    job = job_queue.get_job(job_id)
+
+    if not job:
+        return jsonify({"status": "missing", "error": "Job not found or expired."}), 404
+
+    status = job.get("status") or "unknown"
+
+    # Always include error if present so frontend can show it
+    payload = {
+        "status": status,
+        "result": job.get("result"),
+        "error": job.get("error"),
+    }
+
+    # If failed, return 200 (frontend already checks status === "failed")
+    # but include the message.
+    if status == "failed" and not payload["error"]:
+        payload["error"] = "Job failed."
+
+    return jsonify(payload), 200
+
 
 
 if __name__ == "__main__":

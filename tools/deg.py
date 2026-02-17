@@ -7,36 +7,13 @@ import tempfile
 import time
 import uuid
 
-
 import pandas as pd
 from flask import Blueprint, jsonify, render_template, request, send_file, current_app
+
 from tools.upload_utils import is_allowed_filename, save_bytes
-from utils.run_r import run_r
+from utils.run_r import run_r_system  # ✅ DEG should use system R
 
 deg_bp = Blueprint("deg", __name__)
-
-_UPLOADS = {}
-
-
-def _ttl_seconds() -> int:
-    hours = current_app.config.get("JOB_TTL_HOURS", 24)
-    try:
-        return max(60, int(hours) * 3600)
-    except (TypeError, ValueError):
-        return 24 * 3600
-
-
-def _cleanup_uploads() -> None:
-    now = time.time()
-    ttl_seconds = _ttl_seconds()
-    stale = [k for k, v in _UPLOADS.items() if now - v["ts"] > ttl_seconds]
-    for k in stale:
-        entry = _UPLOADS.pop(k, None)
-        if entry and entry.get("path"):
-            try:
-                os.remove(entry["path"])
-            except OSError:
-                pass
 
 
 def _parse_min_count(value) -> int:
@@ -56,15 +33,11 @@ def _normalize_rows(rows: list[dict]) -> list[dict]:
 
 
 def _project_root() -> str:
-    # tools/deg.py -> project root is one folder up
     return os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
 
 def _run_r_analysis(csv_path: str, group_map: dict, method: str, min_count: int) -> bytes:
-    # Update the R script filename here if you renamed it
-    # e.g. "deg.R" or "deg_de.R" etc.
     script_path = os.path.join(_project_root(), "r_scripts", "deg.R")
-
     if not os.path.exists(script_path):
         raise RuntimeError(f"R script not found: {script_path}")
 
@@ -76,10 +49,14 @@ def _run_r_analysis(csv_path: str, group_map: dict, method: str, min_count: int)
             json.dump({"group_map": group_map, "method": method, "min_count": min_count}, f)
 
         try:
-            run_r(script_path, csv_path, meta_path, out_path)
+            # ✅ Use system R so DESeq2/edgeR come from your system R libs
+            run_r_system(script_path, csv_path, meta_path, out_path)
         except subprocess.CalledProcessError as exc:
             msg = (exc.stderr or "").strip() or (exc.stdout or "").strip() or "Rscript failed."
             raise RuntimeError(msg) from exc
+
+        if not os.path.exists(out_path):
+            raise RuntimeError("R finished without producing an output file.")
 
         with open(out_path, "rb") as f:
             return f.read()
@@ -121,15 +98,14 @@ def run_deg_analyze_job(job_id, job_dir, input_path, group_map, method, min_coun
 
 # ---------------------------
 # DEG API endpoints
-# These will be mounted under a prefix in app.py, e.g. /degapi/...
 # ---------------------------
 
 @deg_bp.post("/columns")
 def columns():
-    _cleanup_uploads()
     file = request.files.get("file")
     if not file:
         return jsonify({"error": "No file uploaded."}), 400
+
     data_exts = {".tsv", ".txt", ".csv"}
     if not is_allowed_filename(file.filename or "", data_exts):
         return jsonify({"error": "Invalid file type. Use .tsv, .txt, or .csv only."}), 400
@@ -149,23 +125,45 @@ def columns():
     gene_col = df.columns[0]
     sample_cols = list(df.columns[1:])
 
-    file_id = str(uuid.uuid4())
-    upload_path = save_bytes(current_app.config["UPLOAD_FOLDER"], file.filename or "", raw, ".tsv")
-    _UPLOADS[file_id] = {"path": upload_path, "ts": time.time()}
+    # ✅ create a job folder now and stage the upload there (shared across workers)
+    job_queue = current_app.config["JOB_QUEUE"]
+    job_id, job_dir = job_queue.create_job("deg_upload")
 
-    return jsonify({"file_id": file_id, "gene_col": gene_col, "sample_cols": sample_cols})
+    staged_path = os.path.join(job_dir, "counts.tsv")
+    try:
+        with open(staged_path, "wb") as f:
+            f.write(raw)
+    except OSError as exc:
+        job_queue.finalize_job(job_id)
+        return jsonify({"error": f"Failed to save upload: {exc}"}), 500
+
+    # ✅ return job_id instead of file_id
+    return jsonify({"job_id": job_id, "gene_col": gene_col, "sample_cols": sample_cols})
+
+
+def _get_staged_counts_path(job_id: str) -> tuple[str, dict]:
+    job_queue = current_app.config["JOB_QUEUE"]
+    job = job_queue.get_job(job_id)
+    if not job:
+        raise FileNotFoundError("Upload expired or missing. Please upload again.")
+    job_dir = job.get("job_dir")
+    if not job_dir:
+        raise FileNotFoundError("Upload expired or missing. Please upload again.")
+    counts_path = os.path.join(job_dir, "counts.tsv")
+    if not os.path.exists(counts_path):
+        raise FileNotFoundError("Upload expired or missing. Please upload again.")
+    return counts_path, job
 
 
 @deg_bp.post("/export")
 def export():
-    _cleanup_uploads()
     payload = request.get_json(silent=True) or {}
-    file_id = payload.get("file_id")
+    job_id = payload.get("job_id")  # ✅ job_id now
     group_map = payload.get("group_map") or {}
     method = (payload.get("method") or "").lower().strip()
     min_count = _parse_min_count(payload.get("min_count"))
 
-    if not file_id or file_id not in _UPLOADS:
+    if not job_id:
         return jsonify({"error": "Upload expired or missing. Please upload again."}), 400
     if method not in {"edger", "deseq2"}:
         return jsonify({"error": "Unsupported method."}), 400
@@ -174,43 +172,43 @@ def export():
     if groups != {"A", "B"}:
         return jsonify({"error": "Select samples for both Group A and Group B."}), 400
 
-    csv_path = _UPLOADS[file_id]["path"]
-    if not csv_path or not os.path.exists(csv_path):
-        return jsonify({"error": "Upload missing. Please upload again."}), 400
+    try:
+        counts_path, job = _get_staged_counts_path(job_id)
+    except FileNotFoundError as exc:
+        return jsonify({"error": str(exc)}), 400
 
     job_queue = current_app.config["JOB_QUEUE"]
-    job_id, job_dir = job_queue.create_job("deg_export")
-    job_input_path = os.path.join(job_dir, "counts.tsv")
+    new_job_id, new_job_dir = job_queue.create_job("deg_export")
+
+    job_input_path = os.path.join(new_job_dir, "counts.tsv")
     try:
-        shutil.move(csv_path, job_input_path)
-        _UPLOADS.pop(file_id, None)
+        shutil.copy2(counts_path, job_input_path)  # keep staged upload intact
     except OSError as exc:
-        job_queue.finalize_job(job_id)
+        job_queue.finalize_job(new_job_id)
         return jsonify({"error": f"Failed to stage upload: {exc}"}), 400
 
     job_queue.submit(
-        job_id,
+        new_job_id,
         "tools.deg:run_deg_export_job",
-        job_id,
-        job_dir,
+        new_job_id,
+        new_job_dir,
         job_input_path,
         group_map,
         method,
         min_count,
     )
-    return jsonify({"job_id": job_id, "status_url": f"/job/{job_id}/status"}), 202
+    return jsonify({"job_id": new_job_id, "status_url": f"/job/{new_job_id}/status"}), 202
 
 
 @deg_bp.post("/analyze")
 def analyze():
-    _cleanup_uploads()
     payload = request.get_json(silent=True) or {}
-    file_id = payload.get("file_id")
+    job_id = payload.get("job_id")  # ✅ job_id now
     group_map = payload.get("group_map") or {}
     method = (payload.get("method") or "").lower().strip()
     min_count = _parse_min_count(payload.get("min_count"))
 
-    if not file_id or file_id not in _UPLOADS:
+    if not job_id:
         return jsonify({"error": "Upload expired or missing. Please upload again."}), 400
     if method not in {"edger", "deseq2"}:
         return jsonify({"error": "Unsupported method."}), 400
@@ -219,31 +217,32 @@ def analyze():
     if groups != {"A", "B"}:
         return jsonify({"error": "Select samples for both Group A and Group B."}), 400
 
-    csv_path = _UPLOADS[file_id]["path"]
-    if not csv_path or not os.path.exists(csv_path):
-        return jsonify({"error": "Upload missing. Please upload again."}), 400
+    try:
+        counts_path, job = _get_staged_counts_path(job_id)
+    except FileNotFoundError as exc:
+        return jsonify({"error": str(exc)}), 400
 
     job_queue = current_app.config["JOB_QUEUE"]
-    job_id, job_dir = job_queue.create_job("deg_analyze")
-    job_input_path = os.path.join(job_dir, "counts.tsv")
+    new_job_id, new_job_dir = job_queue.create_job("deg_analyze")
+
+    job_input_path = os.path.join(new_job_dir, "counts.tsv")
     try:
-        shutil.move(csv_path, job_input_path)
-        _UPLOADS.pop(file_id, None)
+        shutil.copy2(counts_path, job_input_path)
     except OSError as exc:
-        job_queue.finalize_job(job_id)
+        job_queue.finalize_job(new_job_id)
         return jsonify({"error": f"Failed to stage upload: {exc}"}), 400
 
     job_queue.submit(
-        job_id,
+        new_job_id,
         "tools.deg:run_deg_analyze_job",
-        job_id,
-        job_dir,
+        new_job_id,
+        new_job_dir,
         job_input_path,
         group_map,
         method,
         min_count,
     )
-    return jsonify({"job_id": job_id, "status_url": f"/job/{job_id}/status", "result_id": job_id}), 202
+    return jsonify({"job_id": new_job_id, "status_url": f"/job/{new_job_id}/status", "result_id": new_job_id}), 202
 
 
 @deg_bp.get("/results/<result_id>")
@@ -277,6 +276,7 @@ def results_data(result_id: str):
         df = pd.read_csv(result_path)
     except Exception as exc:
         return jsonify({"error": f"Failed to parse results: {exc}"}), 400
+
     rows = _normalize_rows(df.to_dict(orient="records"))
     total_rows = len(rows)
     total_pages = max(1, (total_rows + page_size - 1) // page_size)

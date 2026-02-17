@@ -1,7 +1,8 @@
 // DEG API base (matches: app.register_blueprint(deg_bp, url_prefix="/api/deg"))
 const DEG_API = "/api/deg";
 
-let currentFileId = null;
+// ✅ store upload job_id (not file_id)
+let currentUploadJobId = null;
 
 const fileInput = document.getElementById("file");
 const loadBtn = document.getElementById("load-btn");
@@ -71,7 +72,7 @@ async function waitForJob(jobId) {
 }
 
 function resetForm() {
-  currentFileId = null;
+  currentUploadJobId = null; // ✅
   fileInput.value = "";
   samplesList.innerHTML = "";
   samplesCard.classList.add("hidden");
@@ -140,7 +141,7 @@ if (resetBtn) {
 loadBtn.addEventListener("click", async () => {
   setStatus("");
   samplesCard.classList.add("hidden");
-  currentFileId = null;
+  currentUploadJobId = null; // ✅
   setProgress(0);
 
   const file = fileInput.files[0];
@@ -158,13 +159,11 @@ loadBtn.addEventListener("click", async () => {
   setProgress(15);
 
   try {
-    // ✅ FIXED: use blueprint endpoint
     const res = await fetch(`${DEG_API}/columns`, {
       method: "POST",
       body: formData,
     });
 
-    // safer parsing (still works when backend returns JSON)
     const text = await res.text();
     let data;
     try {
@@ -179,7 +178,15 @@ loadBtn.addEventListener("click", async () => {
       return;
     }
 
-    currentFileId = data.file_id;
+    // ✅ backend now returns job_id (staged upload job)
+    currentUploadJobId = data.job_id;
+
+    if (!currentUploadJobId) {
+      setStatus(data.error || "Upload staging failed.", true);
+      setProgress(0, true);
+      return;
+    }
+
     renderSamples(data.sample_cols || []);
     samplesCard.classList.remove("hidden");
     setStatus(`Loaded ${(data.sample_cols || []).length} samples.`);
@@ -202,7 +209,7 @@ exportBtn.addEventListener("click", async () => {
   }
   if (downloadBtn) downloadBtn.disabled = true;
 
-  if (!currentFileId) {
+  if (!currentUploadJobId) {
     setStatus("Upload a file first.", true);
     setProgress(0, true);
     return;
@@ -220,31 +227,17 @@ exportBtn.addEventListener("click", async () => {
   startProgressPulse();
 
   try {
-    // ✅ FIXED: use blueprint endpoint
     const res = await fetch(`${DEG_API}/export`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        file_id: currentFileId,
+        // ✅ send job_id (not file_id)
+        job_id: currentUploadJobId,
         group_map: groupMap,
         method: methodSelect.value,
         min_count: minCountInput.value,
       }),
     });
-
-    if (!res.ok) {
-      // backend returns JSON error
-      const text = await res.text();
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch {
-        data = { error: text };
-      }
-      setStatus(data.error || "Export failed.", true);
-      setProgress(0, true);
-      return;
-    }
 
     const text = await res.text();
     let data;
@@ -252,6 +245,12 @@ exportBtn.addEventListener("click", async () => {
       data = JSON.parse(text);
     } catch {
       data = { error: text };
+    }
+
+    if (!res.ok) {
+      setStatus(data.error || "Export failed.", true);
+      stopProgressPulse(0, true);
+      return;
     }
 
     const jobId = data.job_id;
@@ -263,6 +262,8 @@ exportBtn.addEventListener("click", async () => {
 
     setStatus("Job queued. Running analysis...");
     const result = await waitForJob(jobId);
+
+    // In your job result, deg.py returns {"download_url": "..."} for export job
     downloadUrl = result.download_url || null;
 
     if (downloadUrl) {
