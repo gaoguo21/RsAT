@@ -18,6 +18,7 @@ const statusBarFill = document.getElementById("status-bar-fill");
 const statusPercent = document.getElementById("status-percent");
 
 let downloadUrl = null;
+let progressTimer = null;
 
 function setStatus(message, isError = false) {
   statusEl.textContent = message;
@@ -33,6 +34,39 @@ function setProgress(value, isError = false) {
 
   if (statusPercent) {
     statusPercent.textContent = `${Math.round(safeValue)}%`;
+  }
+}
+
+function startProgressPulse(start = 20, max = 85) {
+  clearInterval(progressTimer);
+  let current = start;
+  setProgress(current);
+  progressTimer = setInterval(() => {
+    current += Math.random() * 4;
+    if (current > max) current = max;
+    setProgress(current);
+  }, 350);
+}
+
+function stopProgressPulse(finalValue, isError = false) {
+  clearInterval(progressTimer);
+  progressTimer = null;
+  setProgress(finalValue, isError);
+}
+
+async function waitForJob(jobId) {
+  const statusUrl = `/job/${jobId}/status`;
+  while (true) {
+    const res = await fetch(statusUrl);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error || "Failed to fetch job status.");
+    }
+    if (data.status === "finished") return data.result || {};
+    if (data.status === "failed") {
+      throw new Error(data.error || "Job failed.");
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000));
   }
 }
 
@@ -55,7 +89,7 @@ function resetForm() {
   if (downloadBtn) downloadBtn.disabled = true;
 
   setStatus("");
-  setProgress(0);
+  stopProgressPulse(0);
 }
 
 function renderSamples(samples) {
@@ -183,7 +217,7 @@ exportBtn.addEventListener("click", async () => {
 
   exportBtn.disabled = true;
   exportBtn.textContent = "Running...";
-  setProgress(25);
+  startProgressPulse();
 
   try {
     // ✅ FIXED: use blueprint endpoint
@@ -212,17 +246,36 @@ exportBtn.addEventListener("click", async () => {
       return;
     }
 
-    setProgress(70);
-    const blob = await res.blob();
-    downloadUrl = window.URL.createObjectURL(blob);
+    const text = await res.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { error: text };
+    }
 
-    if (downloadBtn) downloadBtn.disabled = false;
+    const jobId = data.job_id;
+    if (!jobId) {
+      setStatus(data.error || "Job submission failed.", true);
+      stopProgressPulse(0, true);
+      return;
+    }
 
-    setStatus("Comparison complete. Click Download results.");
-    setProgress(100);
+    setStatus("Job queued. Running analysis...");
+    const result = await waitForJob(jobId);
+    downloadUrl = result.download_url || null;
+
+    if (downloadUrl) {
+      if (downloadBtn) downloadBtn.disabled = false;
+      setStatus("Comparison complete. Click Download results.");
+      stopProgressPulse(100);
+    } else {
+      setStatus("No results returned.", true);
+      stopProgressPulse(0, true);
+    }
   } catch (err) {
     setStatus(`Error: ${err.message}`, true);
-    setProgress(0, true);
+    stopProgressPulse(0, true);
   } finally {
     exportBtn.disabled = false;
     exportBtn.textContent = "Run";

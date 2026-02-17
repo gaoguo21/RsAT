@@ -1,29 +1,17 @@
-import io
 import os
-import tempfile
-import time
-import uuid
 import subprocess
+import tempfile
 
 from flask import Blueprint, jsonify, request, send_file, current_app
 from tools.upload_utils import is_allowed_filename, save_bytes
+from utils.run_r import run_r
 
 ssgsea_bp = Blueprint("ssgsea", __name__)
-
-_RESULTS = {}
-_TTL_SECONDS = 30 * 60
-_MAX_BYTES = 30 * 1024 * 1024
+_MAX_BYTES = 100 * 1024 * 1024
 
 
 def _project_root() -> str:
     return os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-
-
-def _cleanup_results() -> None:
-    now = time.time()
-    stale = [k for k, v in _RESULTS.items() if now - v["ts"] > _TTL_SECONDS]
-    for k in stale:
-        _RESULTS.pop(k, None)
 
 
 def _run_r_ssgsea(expr_path: str, gmt_path: str) -> tuple[bytes, int]:
@@ -34,11 +22,11 @@ def _run_r_ssgsea(expr_path: str, gmt_path: str) -> tuple[bytes, int]:
     with tempfile.TemporaryDirectory() as tmpdir:
         out_path = os.path.join(tmpdir, "ssgsea_scores.csv")
         summary_path = os.path.join(tmpdir, "ssgsea_summary.txt")
-        cmd = ["Rscript", script_path, expr_path, gmt_path, out_path, summary_path]
-        proc = subprocess.run(cmd, capture_output=True, text=True)
-        if proc.returncode != 0:
-            msg = (proc.stderr or "").strip() or (proc.stdout or "").strip() or "Rscript failed."
-            raise RuntimeError(msg)
+        try:
+            run_r(script_path, expr_path, gmt_path, out_path, summary_path)
+        except subprocess.CalledProcessError as exc:
+            msg = (exc.stderr or "").strip() or (exc.stdout or "").strip() or "Rscript failed."
+            raise RuntimeError(msg) from exc
         with open(out_path, "rb") as f:
             csv_bytes = f.read()
 
@@ -54,12 +42,29 @@ def _run_r_ssgsea(expr_path: str, gmt_path: str) -> tuple[bytes, int]:
         return csv_bytes, low_overlap_sets
 
 
+def run_ssgsea_job(job_id, job_dir, expr_path, gmt_path):
+    try:
+        csv_bytes, low_overlap_sets = _run_r_ssgsea(expr_path, gmt_path)
+        result_path = os.path.join(job_dir, "ssgsea_scores.csv")
+        with open(result_path, "wb") as f:
+            f.write(csv_bytes)
+        return {
+            "ok": True,
+            "download_url": f"/api/ssgsea/download/{job_id}",
+            "low_overlap_sets": low_overlap_sets,
+        }
+    finally:
+        for path in (expr_path, gmt_path):
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+
+
 @ssgsea_bp.post("/run")
 def run():
-    _cleanup_results()
-
     if request.content_length and request.content_length > _MAX_BYTES:
-        return jsonify({"error": "File exceeds the 30 MB capacity."}), 400
+        return jsonify({"error": "File exceeds the 100 MB capacity."}), 400
 
     if not request.content_type or not request.content_type.startswith("multipart/form-data"):
         return jsonify({"error": "Upload files using multipart/form-data."}), 400
@@ -82,49 +87,44 @@ def run():
     if not expr_raw:
         return jsonify({"error": "Expression file is empty."}), 400
     if len(expr_raw) > _MAX_BYTES:
-        return jsonify({"error": "File exceeds the 30 MB capacity."}), 400
+        return jsonify({"error": "File exceeds the 100 MB capacity."}), 400
 
     gmt_raw = gmt_file.read()
     if not gmt_raw:
         return jsonify({"error": "GMT file is empty."}), 400
 
-    expr_path = save_bytes(current_app.config["UPLOAD_FOLDER"], expr_file.filename or "", expr_raw, ".tsv")
-    gmt_path = save_bytes(current_app.config["UPLOAD_FOLDER"], gmt_file.filename or "", gmt_raw, ".gmt")
+    job_queue = current_app.config["JOB_QUEUE"]
+    job_id, job_dir = job_queue.create_job("ssgsea")
+    expr_path = save_bytes(job_dir, expr_file.filename or "", expr_raw, ".tsv")
+    gmt_path = save_bytes(job_dir, gmt_file.filename or "", gmt_raw, ".gmt")
 
-    try:
-        csv_bytes, low_overlap_sets = _run_r_ssgsea(expr_path, gmt_path)
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 400
-    finally:
-        for path in (expr_path, gmt_path):
-            try:
-                os.remove(path)
-            except OSError:
-                pass
-
-    result_id = str(uuid.uuid4())
-    _RESULTS[result_id] = {"csv": csv_bytes, "ts": time.time()}
-
-    return jsonify(
-        {
-            "ok": True,
-            "download_url": f"/api/ssgsea/download/{result_id}",
-            "low_overlap_sets": low_overlap_sets,
-        }
+    job_queue.submit(
+        job_id,
+        "tools.ssgsea:run_ssgsea_job",
+        job_id,
+        job_dir,
+        expr_path,
+        gmt_path,
     )
+    return jsonify({"job_id": job_id, "status_url": f"/job/{job_id}/status"}), 202
 
 
 @ssgsea_bp.get("/download/<result_id>")
 def download(result_id: str):
-    _cleanup_results()
-    if result_id not in _RESULTS:
-        return jsonify({"error": "Results expired. Please run again."}), 404
+    job_queue = current_app.config["JOB_QUEUE"]
+    job = job_queue.get_job(result_id)
+    if not job or job.get("status") != "finished":
+        return jsonify({"error": "Results expired or not ready. Please run again."}), 404
 
-    buf = io.BytesIO(_RESULTS[result_id]["csv"])
-    buf.seek(0)
-    return send_file(
-        buf,
+    result_path = os.path.join(job["job_dir"], "ssgsea_scores.csv")
+    if not os.path.exists(result_path):
+        return jsonify({"error": "Results missing. Please run again."}), 404
+
+    response = send_file(
+        result_path,
         as_attachment=True,
         download_name="ssgsea_scores.csv",
         mimetype="text/csv",
     )
+    response.call_on_close(lambda: job_queue.finalize_job(result_id))
+    return response

@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template
+from flask import Flask, render_template, jsonify
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -17,10 +17,27 @@ def _env_int(name: str, default: int) -> int:
         return default
 
 
-app.config["MAX_CONTENT_LENGTH"] = _env_int("MAX_CONTENT_LENGTH", 30 * 1024 * 1024)
+app.config["MAX_CONTENT_LENGTH"] = _env_int("MAX_CONTENT_LENGTH", 100 * 1024 * 1024)
 app.config["UPLOAD_FOLDER"] = os.path.join(BASE_DIR, ".data", "uploads")
 app.config["ALLOWED_UPLOAD_EXTENSIONS"] = {".tsv", ".txt", ".csv", ".gmt"}
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+app.config["MAX_CONCURRENT_JOBS"] = _env_int("MAX_CONCURRENT_JOBS", 2)
+app.config["JOB_TTL_HOURS"] = _env_int("JOB_TTL_HOURS", 24)
+app.config["MICROMAMBA_PATH"] = os.environ.get("MICROMAMBA_PATH", "/usr/local/bin/micromamba")
+app.config["JOB_BASE_DIR"] = os.path.join(BASE_DIR, ".data", "jobs")
+app.config["REDIS_URL"] = os.environ.get("REDIS_URL", "")
+os.makedirs(app.config["JOB_BASE_DIR"], exist_ok=True)
+
+from tools.job_queue import JobQueue
+
+job_queue = JobQueue(
+    app,
+    max_concurrent=app.config["MAX_CONCURRENT_JOBS"],
+    job_ttl_hours=app.config["JOB_TTL_HOURS"],
+    base_dir=app.config["JOB_BASE_DIR"],
+    redis_url=app.config["REDIS_URL"] or None,
+)
+app.config["JOB_QUEUE"] = job_queue
 
 # ---- IMPORT BLUEPRINTS (ADD HERE) ----
 from tools.deg import deg_bp
@@ -63,6 +80,17 @@ def ssgsea_page():
 @app.route("/extraction")
 def extraction_page():
     return render_template("extraction.html")
+
+@app.route("/legal")
+def legal_page():
+    return render_template("legal.html")
+
+@app.route("/job/<job_id>/status")
+def job_status(job_id: str):
+    status = job_queue.get_public_status(job_id)
+    if not status:
+        return jsonify({"error": "Job not found."}), 404
+    return jsonify(status)
 
 
 if __name__ == "__main__":

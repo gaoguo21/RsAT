@@ -1,18 +1,16 @@
 import io
+import logging
 import os
-import tempfile
-import time
-import uuid
 import subprocess
+import tempfile
 
 import pandas as pd
 from flask import Blueprint, jsonify, request, send_file, current_app
 from tools.upload_utils import is_allowed_filename, save_bytes
+from utils.run_r import run_r
 
 pathway_bp = Blueprint("pathway", __name__)
-
-_RESULTS = {}
-_TTL_SECONDS = 30 * 60
+logger = logging.getLogger(__name__)
 
 
 def _parse_ranked_from_file(filename: str, raw: bytes) -> list[tuple[str, float]]:
@@ -45,13 +43,6 @@ def _project_root() -> str:
     return os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
 
-def _cleanup_results() -> None:
-    now = time.time()
-    stale = [k for k, v in _RESULTS.items() if now - v["ts"] > _TTL_SECONDS]
-    for k in stale:
-        _RESULTS.pop(k, None)
-
-
 def _run_r_enrichment(input_path: str, organism: str, library: str, gmt_path):
     script_path = os.path.join(_project_root(), "r_scripts", "enrichment.R")
     if not os.path.exists(script_path):
@@ -59,11 +50,15 @@ def _run_r_enrichment(input_path: str, organism: str, library: str, gmt_path):
 
     with tempfile.TemporaryDirectory() as tmpdir:
         out_path = os.path.join(tmpdir, "pathway_results.csv")
-        cmd = ["Rscript", script_path, input_path, out_path, organism, library, gmt_path or ""]
-        proc = subprocess.run(cmd, capture_output=True, text=True)
-        if proc.returncode != 0:
-            msg = (proc.stderr or "").strip() or (proc.stdout or "").strip() or "Rscript failed."
-            raise RuntimeError(msg)
+        try:
+            run_r(script_path, input_path, out_path, organism, library, gmt_path or "")
+        except subprocess.CalledProcessError as exc:
+            msg = (exc.stderr or "").strip() or (exc.stdout or "").strip() or "Rscript failed."
+            logger.error("Pathway enrichment failed: %s", msg)
+            raise RuntimeError(msg) from exc
+        except FileNotFoundError as exc:
+            logger.error("Rscript runner not found.")
+            raise RuntimeError("Rscript runner not found.") from exc
         with open(out_path, "rb") as f:
             return f.read()
 
@@ -110,14 +105,40 @@ def _coerce_results(csv_bytes: bytes) -> list[dict]:
     return _normalize_rows(df.to_dict(orient="records"))
 
 
+def run_pathway_job(job_id, job_dir, input_path, organism, library, gmt_path):
+    try:
+        csv_bytes = _run_r_enrichment(input_path, organism, library, gmt_path)
+        result_path = os.path.join(job_dir, "pathway_results.csv")
+        with open(result_path, "wb") as f:
+            f.write(csv_bytes)
+        try:
+            rows = _coerce_results(csv_bytes)
+        except Exception as exc:
+            raise RuntimeError(f"Failed to parse results: {exc}") from exc
+        return {
+            "ok": True,
+            "results": rows,
+            "download_url": f"/api/pathway/download/{job_id}",
+        }
+    finally:
+        for path in (input_path, gmt_path):
+            if path:
+                try:
+                    os.remove(path)
+                except OSError:
+                    pass
+
+
 @pathway_bp.post("/run")
 def run():
-    _cleanup_results()
     ranked = []
     organism = ""
     library = ""
     input_path = ""
     gmt_path = None
+    job_queue = current_app.config["JOB_QUEUE"]
+    job_id = None
+    job_dir = None
 
     if request.content_type and request.content_type.startswith("multipart/form-data"):
         file = request.files.get("file")
@@ -135,7 +156,8 @@ def run():
         if not raw:
             return jsonify({"error": "Uploaded file is empty."}), 400
         ranked = _parse_ranked_from_file(file.filename or "", raw)
-        input_path = save_bytes(current_app.config["UPLOAD_FOLDER"], file.filename or "", raw, ".txt")
+        job_id, job_dir = job_queue.create_job("pathway")
+        input_path = save_bytes(job_dir, file.filename or "", raw, ".txt")
 
         if gmt_file:
             if not is_allowed_filename(gmt_file.filename or "", {".gmt"}):
@@ -144,16 +166,22 @@ def run():
                         os.remove(input_path)
                     except OSError:
                         pass
+                if job_id:
+                    job_queue.finalize_job(job_id)
                 return jsonify({"error": "Invalid GMT file type. Use .gmt only."}), 400
             gmt_raw = gmt_file.read()
             if gmt_raw:
-                gmt_path = save_bytes(current_app.config["UPLOAD_FOLDER"], gmt_file.filename or "", gmt_raw, ".gmt")
+                gmt_path = save_bytes(job_dir, gmt_file.filename or "", gmt_raw, ".gmt")
     else:
         return jsonify({"error": "Upload a preranked file using multipart/form-data."}), 400
 
     if organism not in {"human", "mouse"}:
+        if job_id:
+            job_queue.finalize_job(job_id)
         return jsonify({"error": "Organism must be Human or Mouse."}), 400
     if library not in {"kegg", "reactome", "hallmark", "go", "biocarta", "custom"}:
+        if job_id:
+            job_queue.finalize_job(job_id)
         return jsonify({"error": "Library must be KEGG, Reactome, Hallmark, GO, BioCarta, or Custom."}), 400
 
     if library == "custom" and not gmt_path:
@@ -162,6 +190,8 @@ def run():
                 os.remove(input_path)
             except OSError:
                 pass
+        if job_id:
+            job_queue.finalize_job(job_id)
         return jsonify({"error": "Custom dataset selected. Upload a GMT file."}), 400
 
     if not ranked:
@@ -170,6 +200,8 @@ def run():
                 os.remove(input_path)
             except OSError:
                 pass
+        if job_id:
+            job_queue.finalize_job(job_id)
         return jsonify({"error": "No genes provided."}), 400
 
     fcs = [fc for _, fc in ranked]
@@ -179,46 +211,38 @@ def run():
                 os.remove(input_path)
             except OSError:
                 pass
+        if job_id:
+            job_queue.finalize_job(job_id)
         return jsonify({"error": "Second column must be numeric fold-change values."}), 400
-
-    try:
-        csv_bytes = _run_r_enrichment(input_path, organism, library, gmt_path)
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 400
-    finally:
-        try:
-            if input_path:
-                os.remove(input_path)
-        except OSError:
-            pass
-        try:
-            if gmt_path:
-                os.remove(gmt_path)
-        except OSError:
-            pass
-
-    try:
-        rows = _coerce_results(csv_bytes)
-    except Exception as exc:
-        return jsonify({"error": f"Failed to parse results: {exc}"}), 400
-
-    result_id = str(uuid.uuid4())
-    _RESULTS[result_id] = {"csv": csv_bytes, "ts": time.time()}
-
-    return jsonify({"ok": True, "results": rows, "download_url": f"/api/pathway/download/{result_id}"})
+    job_queue.submit(
+        job_id,
+        "tools.pathway:run_pathway_job",
+        job_id,
+        job_dir,
+        input_path,
+        organism,
+        library,
+        gmt_path,
+    )
+    return jsonify({"job_id": job_id, "status_url": f"/job/{job_id}/status"}), 202
 
 
 @pathway_bp.get("/download/<result_id>")
 def download(result_id: str):
-    _cleanup_results()
-    if result_id not in _RESULTS:
-        return jsonify({"error": "Results expired. Please run again."}), 404
+    job_queue = current_app.config["JOB_QUEUE"]
+    job = job_queue.get_job(result_id)
+    if not job or job.get("status") != "finished":
+        return jsonify({"error": "Results expired or not ready. Please run again."}), 404
 
-    buf = io.BytesIO(_RESULTS[result_id]["csv"])
-    buf.seek(0)
-    return send_file(
-        buf,
+    result_path = os.path.join(job["job_dir"], "pathway_results.csv")
+    if not os.path.exists(result_path):
+        return jsonify({"error": "Results missing. Please run again."}), 404
+
+    response = send_file(
+        result_path,
         as_attachment=True,
         download_name="pathway_results.csv",
         mimetype="text/csv",
     )
+    response.call_on_close(lambda: job_queue.finalize_job(result_id))
+    return response

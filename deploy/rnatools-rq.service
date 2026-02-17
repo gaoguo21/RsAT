@@ -1,6 +1,6 @@
 [Unit]
-Description=RNA-seq Analysis Flask App
-After=network.target
+Description=RNA-seq Tools RQ Worker
+After=network.target redis-server.service
 
 [Service]
 User=ubuntu
@@ -10,7 +10,8 @@ Environment="PATH=/home/ubuntu/RsAT/venv/bin:/usr/local/bin:/usr/bin:/bin"
 Environment="MICROMAMBA_PATH=/usr/local/bin/micromamba"
 Environment="USE_MICROMAMBA=1"
 Environment="MAMBA_ENV=rnaenv"
-ExecStart=/home/ubuntu/RsAT/venv/bin/gunicorn -w 2 -b 127.0.0.1:8000 app:app
+Environment="REDIS_URL=redis://localhost:6379/0"
+ExecStart=/home/ubuntu/RsAT/venv/bin/rq worker --url $REDIS_URL
 Restart=always
 RestartSec=5
 

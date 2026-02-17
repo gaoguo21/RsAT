@@ -13,10 +13,11 @@ const warnIcon = document.getElementById("warn-icon");
 const warnText = document.getElementById("warn-text");
 const statusText = document.getElementById("status-text");
 
-const MAX_BYTES = 30 * 1024 * 1024;
+const MAX_BYTES = 100 * 1024 * 1024;
 let downloadUrl = null;
 const ALLOWED_EXT = [".tsv", ".txt", ".csv"];
 let progressTimer = null;
+let currentJobId = null;
 
 function hasAllowedExt(filename) {
   const lower = (filename || "").toLowerCase();
@@ -57,10 +58,27 @@ function stopProgressPulse(finalValue, isError = false) {
   setProgress(finalValue, isError);
 }
 
+async function waitForJob(jobId) {
+  const statusUrl = `/job/${jobId}/status`;
+  while (true) {
+    const res = await fetch(statusUrl);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error || "Failed to fetch job status.");
+    }
+    if (data.status === "finished") return data.result || {};
+    if (data.status === "failed") {
+      throw new Error(data.error || "Job failed.");
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+}
+
 function resetForm() {
   if (exprEl) exprEl.value = "";
   if (gmtEl) gmtEl.value = "";
   downloadUrl = null;
+  currentJobId = null;
   if (downloadBtn) downloadBtn.disabled = true;
   if (runBtn) {
     runBtn.disabled = false;
@@ -102,7 +120,7 @@ async function runSsgsea() {
   }
 
   if (exprFile.size > MAX_BYTES) {
-    setStatus("File exceeds the 30 MB capacity.", true);
+    setStatus("File exceeds the 100 MB capacity.", true);
     setProgress(0, true);
     return;
   }
@@ -135,12 +153,21 @@ async function runSsgsea() {
       return;
     }
 
-    downloadUrl = data.download_url || null;
+    currentJobId = data.job_id;
+    if (!currentJobId) {
+      setStatus(data.error || "Job submission failed.", true);
+      stopProgressPulse(0, true);
+      return;
+    }
+
+    setStatus("Job queued. Running ssGSEA...");
+    const result = await waitForJob(currentJobId);
+    downloadUrl = result.download_url || null;
     if (downloadUrl) {
       downloadBtn.disabled = false;
       setStatus("ssGSEA complete. Click Download results.");
       stopProgressPulse(100);
-      if ((data.low_overlap_sets || 0) > 0) {
+      if ((result.low_overlap_sets || 0) > 0) {
         if (warnIcon) warnIcon.classList.remove("hidden");
         if (warnText) warnText.classList.remove("hidden");
       }

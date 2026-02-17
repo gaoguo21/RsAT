@@ -16,6 +16,7 @@ const warnText = document.getElementById("warn-text");
 
 let downloadUrl = null;
 let progressTimer = null;
+let currentJobId = null;
 
 function setStatus(message, isError = false) {
   statusEl.textContent = message;
@@ -47,12 +48,29 @@ function stopProgressPulse(finalValue, isError = false) {
   setProgress(finalValue, isError);
 }
 
+async function waitForJob(jobId) {
+  const statusUrl = `/job/${jobId}/status`;
+  while (true) {
+    const res = await fetch(statusUrl);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error || "Failed to fetch job status.");
+    }
+    if (data.status === "finished") return data.result || {};
+    if (data.status === "failed") {
+      throw new Error(data.error || "Job failed.");
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+}
+
 function resetForm() {
   if (fileEl) fileEl.value = "";
   if (gmtEl) gmtEl.value = "";
   if (organismEl) organismEl.value = "human";
   if (libraryEl) libraryEl.value = "kegg";
   downloadUrl = null;
+  currentJobId = null;
   if (downloadBtn) downloadBtn.disabled = true;
   if (runBtn) {
     runBtn.disabled = false;
@@ -122,7 +140,17 @@ async function runEnrichment() {
       return;
     }
 
-    downloadUrl = data.download_url || null;
+    currentJobId = data.job_id;
+    if (!currentJobId) {
+      setStatus(data.error || "Job submission failed.", true);
+      stopProgressPulse(0, true);
+      return;
+    }
+
+    setStatus("Job queued. Running enrichment...");
+    const result = await waitForJob(currentJobId);
+    downloadUrl = result.download_url || null;
+
     if (downloadUrl) {
       downloadBtn.disabled = false;
       setStatus("Enrichment complete. Click Download results.");
