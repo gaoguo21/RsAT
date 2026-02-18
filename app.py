@@ -77,6 +77,14 @@ def id2symbol_page():
 def ssgsea_page():
     return render_template("ssgsea.html")
 
+@app.route("/tutorial")
+def tutorial_page():
+    return render_template("tutorial.html")
+
+@app.route("/workflow")
+def workflow_page():
+    return render_template("workflow.html")
+
 @app.route("/extraction")
 def extraction_page():
     return render_template("extraction.html")

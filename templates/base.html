@@ -125,6 +125,33 @@
       font-weight: 500;
     }
 
+    .card .learn-link {
+      display: inline-block;
+      margin-top: 12px;
+      font-size: 14px;
+      color: #2e62ff;
+      text-decoration: none;
+      font-weight: 700;
+    }
+
+    .card .learn-link:hover {
+      text-decoration: underline;
+    }
+
+    .workflow-cta {
+      margin: 28px auto 10px;
+      max-width: 900px;
+      text-align: center;
+      color: #444;
+      line-height: 1.7;
+    }
+
+    .workflow-cta a {
+      color: #2e62ff;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
     /* ===== FOOTER ===== */
     .footer {
       text-align: center;
@@ -159,6 +186,7 @@
       <a href="{{ url_for('pathway_page') }}" class="{% if request.path.startswith('/pathway') %}active{% endif %}">Pathway</a>
       <a href="{{ url_for('id2symbol_page') }}" class="{% if request.path.startswith('/id2symbol') %}active{% endif %}">ID2Symbol</a>
       <a href="{{ url_for('ssgsea_page') }}" class="{% if request.path.startswith('/ssgsea') %}active{% endif %}">ssGSEA</a>
+      <a href="{{ url_for('workflow_page') }}" class="{% if request.path.startswith('/workflow') %}active{% endif %}">AI Coding</a>
       {# Extraction will be added later #}
     </div>
   </div>
@@ -169,7 +197,7 @@
   <footer class="footer">
     &copy;
     <img class="footer-logo" src="{{ url_for('static', filename='images/logoV3.png') }}" alt="RNA-seq Tools" />
-    | rsat2026@gmail.com | <a href="/legal">Privacy &amp; Terms</a>
+    | rsat2026@gmail.com | <a href="/legal">Privacy &amp; Terms</a> 
   </footer>
 
   {% block extra_js %}{% endblock %}
