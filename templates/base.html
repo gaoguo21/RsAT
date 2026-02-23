@@ -1,7 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3VQFER6MLE"></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-3VQFER6MLE');
+</script>
+
   <meta charset="UTF-8" />
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <title>{% block title %}RNA-seq Analysis Tools{% endblock %}</title>
@@ -89,6 +100,13 @@
   font-size: 15px;
   color: #6b7280;
   line-height: 1.6;
+}
+
+
+.download-btn.small{
+  padding:6px 12px;
+  font-size:13px;
+  border-radius:8px;
 }
 
     .cards {
@@ -186,7 +204,7 @@
       <a href="{{ url_for('pathway_page') }}" class="{% if request.path.startswith('/pathway') %}active{% endif %}">Pathway</a>
       <a href="{{ url_for('id2symbol_page') }}" class="{% if request.path.startswith('/id2symbol') %}active{% endif %}">ID2Symbol</a>
       <a href="{{ url_for('ssgsea_page') }}" class="{% if request.path.startswith('/ssgsea') %}active{% endif %}">ssGSEA</a>
-      <a href="{{ url_for('workflow_page') }}" class="{% if request.path.startswith('/workflow') %}active{% endif %}">AI Coding</a>
+      <a href="{{ url_for('workflow_page') }}" class="{% if request.path.startswith('/workflow') %}active{% endif %}">Sources</a>
       {# Extraction will be added later #}
     </div>
   </div>
@@ -197,9 +215,11 @@
   <footer class="footer">
     &copy;
     <img class="footer-logo" src="{{ url_for('static', filename='images/logoV3.png') }}" alt="RNA-seq Tools" />
-    | rsat2026@gmail.com | <a href="/legal">Privacy &amp; Terms</a> 
+    | rsat2026@gmail.com | <a href="/legal">Terms of Service &amp; Privacy Policy</a> 
   </footer>
 
   {% block extra_js %}{% endblock %}
 </body>
 </html>
+
+

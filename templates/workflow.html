@@ -1,28 +1,471 @@
 {% extends "base.html" %}
-{% block title %}AI Coding for RNA-Seq workflow{% endblock %}
+{% block title %}RNA-seq Workflow (STAR + featureCounts){% endblock %}
+
+{% block extra_css %}
+<style>
+  .doc-intro {
+    max-width: 900px;
+    margin: 0 auto 20px;
+    color: #444;
+    line-height: 1.7;
+  }
+
+  .doc-section {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 22px;
+  }
+
+  .doc-section h2 {
+    margin-top: 0;
+    font-size: 26px;
+  }
+
+  .doc-section h3 {
+    margin-top: 18px;
+  }
+
+  .section-desc {
+    color: #555;
+    line-height: 1.7;
+  }
+
+  .toc {
+    background: #f9fafc;
+    border: 1px solid #e1e5f0;
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+
+  .toc ul {
+    margin: 0;
+    padding-left: 18px;
+  }
+
+  .downloads {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+  }
+
+  .download-btn {
+    display: inline-block;
+    text-decoration: none;
+    border: none;
+    background: #2e62ff;
+    color: white;
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 14px;
+    text-align: center;
+  }
+
+  .download-btn.secondary {
+    background: #f2f4f8;
+    color: #111;
+    border: 1px solid #d8deea;
+  }
+
+  pre {
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 14px;
+    border-radius: 10px;
+    overflow-x: auto;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  pre code {
+    font-family: Consolas, Menlo, Monaco, "Courier New", monospace;
+  }
+
+  @media (max-width: 820px) {
+    .doc-section {
+      padding: 20px;
+    }
+  }
+  .code-card {
+    border: 1px solid #e1e5f0;
+    border-radius: 10px;
+    margin: 16px 0 18px;
+    overflow: hidden;
+    background: #f9fafc;
+  }
+
+  .code-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid #e1e5f0;
+    background: #f2f4f8;
+    font-weight: 700;
+  }
+
+  .code-card pre {
+    margin: 0;
+  }
+
+  .copy-btn {
+    border: none;
+    background: #2e62ff;
+    color: white;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 13px;
+  }
+
+  .copy-btn.copied {
+    background: #1f4ee3;
+  }
+
+  .light-code pre {
+    background: white;
+    color: #111;
+    border: 1px solid #e1e5f0;
+  }
+
+  .warning-note {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    color: #6b7280;
+    line-height: 1.6;
+    margin: 6px 0 12px;
+  }
+
+  .warning-note img {
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+  }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="container">
   <div class="hero">
-    <h1>AI Coding for RNA-Seq workflow</h1>
-   </div>
+    <h1>RNA-seq Pipeline</h1>
+    <p class="doc-intro">
+      This resource provides a beginner-friendly, copy-paste-ready RNA-seq workflow optimized for personal PCs using:
+      FastQC -> fastp -> STAR -> samtools -> featureCounts -> MultiQC.
+      The pipeline script supports Single-End and Paired-End FASTQ.gz inputs and produces BAMs, gene counts, and a MultiQC report.
+    </p>
+  </div>
 
-<div class="card" style="max-width: 900px; margin: 0 auto;">
-  <h3>Coming Soon</h3>
-  <p>
-   I will share my experience with AI coding here over time. Check back soon.
+  <section id="summary" class="doc-section">
+    <h2>System</h2>
+    <ul>
+  <li><strong>Windows:</strong> Use <strong>WSL2 + Ubuntu</strong> and run the workflow inside Ubuntu terminal.</li>
+   <li><strong>macOS (MacBook):</strong> Works as-is, but you must run with <strong>Bash 4+</strong> (macOS default bash is often 3.2).</li>
+    <li><strong>Linux/Ubuntu:</strong> Works as-is using <code>bash rnaseq_pipeline.sh ...</code></li>
+    </ul>
+
+    <h3 id="minimum-requirements">Minimum PC requirements</h3>
+    <ul>
+      <li><strong>CPU:</strong> 4 cores minimum (8+ recommended)</li>
+      <li><strong>RAM:</strong>32 GB recommended for smoother STAR indexing/mapping</li>
+            <li><strong>Disk:</strong> plan for 50-150+ GB free (FASTQs + BAMs + STAR outputs + QC)</li>
+      <li><strong>Internet:</strong> needed to download tools and reference files</li>
+    </ul>
+  </section>
+
+<section id="usage" class="doc-section">
+  <h2>Download</h2>
+
+  <p class="section-desc">
+    All pipeline files are hosted on GitHub for downloading
+    <a class="download-btn small" href="https://github.com/rsat2026/rnaseq_pipeline.git" target="_blank" rel="noopener">GitHub</a>.  You can choose one of the two options below.
   </p>
 
-  <hr style="margin:25px 0;">
+  <!-- FULL PACKAGE -->
+  <h3 style="margin-top:12px;">Option 1: Full package (Download ZIP)</h3>
+  <p class="section-desc">
+On GitHub, click <strong>Code</strong> button and choose <strong>Download ZIP</strong>.
+    This will download the complete package.
+  </p>
 
-  <h3>Who is this section for?</h3>
-  <ul>
-    <li>Researchers with little or no coding experience</li>
-    <li>Users interested in learning AI-assisted bioinformatics coding</li>
-    <li>Scientists who want to customize analysis for their own RNA-seq data</li>
-    <li>Students and biologists exploring new computational technologies</li>
-  </ul>
-</div>
+  <!-- PIPELINE ONLY -->
+  <h3 style="margin-top:18px;">Option 2: Pipeline only</h3>
+  <p class="section-desc">
+    If you only want the main script, download or copy <code>rnaseq_pipeline.sh</code> from the repository
+    and follow the step-by-step instructions on this page.
+  </p><p class="warning-note">
+   <img src="/static/images/warning.svg" alt="Warning" />
+      <span>This pipeline has been successfully tested on local personal PCs, but it is still under active development and may require minor adjustments in some environments. If you encounter errors or issues, please report them to: rsat2026@gmail.com. Your input helps improve the tool.</span>
+    </p>
+</section>
+
+</section>
+
+  <section id="toc" class="doc-section">
+    <h2>Table of contents</h2>
+    <nav class="toc">
+      <ul>
+        <li><a href="#project-structure">Project structure</a></li>
+        <li><a href="#install-wsl2">Install Ubuntu on Windows (WSL2)</a></li>
+        <li><a href="#install-conda-mamba">Install Conda + Mamba</a></li>
+        <li><a href="#install-tools">Install required tools</a></li>
+        <li><a href="#download-reference">Download genome FASTA + GTF (tested files)</a></li>
+        <li><a href="#build-star-index">Build STAR index</a></li>
+        <li><a href="#run-pipeline">Run the pipeline</a></li>
+        <li><a href="#results">Where results are saved</a></li>
+      </ul>
+    </nav>
+  </section>
+
+  <section id="project-structure" class="doc-section">
+    <h2>Project structure</h2>
+    <p class="section-desc">
+      <strong>Project location (important):</strong> Place your RNA-seq project (including reference/STAR_index) on a local disk under the system root or your home directory. Do not use shared, synced, or network folders (e.g., OneDrive, Dropbox, Google Drive, or Windows /mnt/c/... paths in WSL2), as they can be slow and cause file errors.
+    </p>
+    <p class="section-desc"><strong>Recommended locations</strong></p>
+    <ul>
+      <li><strong>WSL2:</strong> <code>/home/&lt;user&gt;/my_rnaseq_project</code> (inside the Linux root filesystem)</li>
+      <li><strong>Linux/macOS:</strong> <code>~/my_rnaseq_project</code> (local home directory)</li>
+    </ul>
+    <p class="section-desc"><strong>Avoid:</strong> shared or mounted paths like <code>/mnt/c/.../OneDrive/...</code></p>
+    <p>
+      Keep your STAR index directly under the main project folder (as shown here).
+    </p>
+
+    <div class="light-code"><pre><code class="language-bash">my_rnaseq_project/
+  rnaseq_pipeline.sh
+  fastqs/                         # input FASTQ.gz files here
+    sample1_R1.fastq.gz
+    sample1_R2.fastq.gz
+    ...
+  reference/
+    GRCh38.primary_assembly.genome.fa.gz
+    gencode.v44.primary_assembly.annotation.gtf.gz
+    GRCh38.primary_assembly.genome.fa
+    gencode.v44.primary_assembly.annotation.gtf
+    STAR_index/               # STAR index folder (GENOME_DIR)
+  rna_output/                 # pipeline output (OUTPUT_DIR) will be generated automatically after the run completes.
+    </code></pre></div>
+  </section>
+
+  <section id="install-wsl2" class="doc-section">
+    <h2>Install Ubuntu on Windows (WSL2)</h2>
+    <p>Run these commands in Windows Command Prompt (CMD) or PowerShell:</p>
+    <div class="code-card"><div class="code-header"><span>Command</span><button class="copy-btn" data-target="code-wsl2-install">Copy</button></div><pre><code id="code-wsl2-install" class="language-bash">wsl --install -d Ubuntu
+wsl --set-default-version 2
+wsl --set-default Ubuntu</code></pre></div>
+    <p>Then launch Ubuntu from the Start menu and continue the workflow inside the Ubuntu terminal.</p>
+  </section>
+
+  <section id="install-conda-mamba" class="doc-section">
+    <h2>Install Conda + Mamba (beginner-friendly)</h2>
+
+    <h3>Linux / Ubuntu / WSL2</h3>
+    <p>1) Install Miniforge (Conda) and initialize it:</p>
+    <div class="code-card"><div class="code-header"><span>Command</span><button class="copy-btn" data-target="code-c0cbb354a9bc456ba7be1932c85c5d4c">Copy</button></div><pre><code id="code-c0cbb354a9bc456ba7be1932c85c5d4c" class="language-bash">cd ~
+curl -L -o Miniforge3.sh https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh
+bash Miniforge3.sh -b -p "$HOME/miniforge3"
+echo 'export PATH="$HOME/miniforge3/bin:$PATH"' &gt;&gt; ~/.bashrc
+source ~/.bashrc</code></pre></div>
+
+    <p>2) Install Mamba into base environment:</p>
+    <div class="code-card"><div class="code-header"><span>Command</span><button class="copy-btn" data-target="code-314b591bb61a49b1a0886c9d53ac839a">Copy</button></div><pre><code id="code-314b591bb61a49b1a0886c9d53ac839a" class="language-bash">conda install -n base -c conda-forge mamba -y</code></pre></div>
+
+    <h3>macOS</h3>
+    <p>1) Install Miniforge (Conda):</p>
+    <div class="code-card"><div class="code-header"><span>Command</span><button class="copy-btn" data-target="code-08c5b837ba604440bfe9a4a6700d3230">Copy</button></div><pre><code id="code-08c5b837ba604440bfe9a4a6700d3230" class="language-bash">cd ~
+# Apple Silicon (M1/M2/M3):
+curl -L -o Miniforge3.sh https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-MacOSX-arm64.sh
+# Intel Mac (older):
+# curl -L -o Miniforge3.sh https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-MacOSX-x86_64.sh
+
+bash Miniforge3.sh -b -p "$HOME/miniforge3"
+echo 'export PATH="$HOME/miniforge3/bin:$PATH"' &gt;&gt; ~/.zshrc
+source ~/.zshrc</code></pre></div>
+
+    <p>2) Install Mamba:</p>
+    <div class="code-card"><div class="code-header"><span>Command</span><button class="copy-btn" data-target="code-3db8b0c96ed24f3e907a4c107d22225e">Copy</button></div><pre><code id="code-3db8b0c96ed24f3e907a4c107d22225e" class="language-bash">conda install -n base -c conda-forge mamba -y</code></pre></div>
+
+    <p><strong>Important (macOS only):</strong> your script needs Bash 4+. Install modern bash:</p>
+    <div class="code-card"><div class="code-header"><span>Command</span><button class="copy-btn" data-target="code-e44b03837eae4ff4aeb636187f015f64">Copy</button></div><pre><code id="code-e44b03837eae4ff4aeb636187f015f64" class="language-bash">brew install bash gawk</code></pre></div>
+  </section>
+
+  <section id="install-tools" class="doc-section">
+    <h2>Install required tools (FastQC, MultiQC, fastp, STAR, samtools, featureCounts, etc.)</h2>
+    <p>Create an isolated environment and install all tools:</p>
+    <div class="code-card"><div class="code-header"><span>Command</span><button class="copy-btn" data-target="code-cf283132fcf844168bef9215d20332dd">Copy</button></div><pre><code id="code-cf283132fcf844168bef9215d20332dd" class="language-bash">mamba create -n rnaseq -c conda-forge -c bioconda \
+  fastqc multiqc fastp star samtools subread python pigz wget -y
+
+mamba activate rnaseq</code></pre></div>
+
+    <p>Verify installs:</p>
+    <div class="code-card"><div class="code-header"><span>Command</span><button class="copy-btn" data-target="code-08d0c7683ee747679835a7076f5e6fa2">Copy</button></div><pre><code id="code-08d0c7683ee747679835a7076f5e6fa2" class="language-bash">fastqc --version
+multiqc --version
+fastp --version
+STAR --version
+samtools --version
+featureCounts -v
+python --version
+pigz --version
+wget --version</code></pre></div>
+  </section>
+
+  <section id="download-reference" class="doc-section">
+    <h2>Download genome FASTA + GTF</h2>
+       <div class="code-card"><div class="code-header"><span>Command</span><button class="copy-btn" data-target="code-edc303137bec45afa359d85ffdd5854c">Copy</button></div><pre><code id="code-edc303137bec45afa359d85ffdd5854c" class="language-bash">cd ~
+mkdir -p my_rnaseq_project/{fastqs,reference}
+cd my_rnaseq_project/reference</code></pre></div>
+
+  <p>
+    Copy the command below to download the reference genome and annotation.
+  </p>
+
+  <div class="code-card">
+    <div class="code-header">
+      <span>Command</span>
+      <button class="copy-btn" data-target="code-5f2c7e0b2b6b4e7a9f3e2d6c7a1b9c0d">Copy</button>
+    </div>
+    <pre><code id="code-5f2c7e0b2b6b4e7a9f3e2d6c7a1b9c0d" class="language-bash">wget -O gencode.v44.primary_assembly.annotation.gtf.gz \
+https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/gencode.v44.primary_assembly.annotation.gtf.gz
+
+wget -O GRCh38.primary_assembly.genome.fa.gz \
+https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/GRCh38.primary_assembly.genome.fa.gz</code></pre>
+  </div>
+  <p>Unzip both gz files using pigz:</p>
+  <div class="code-card">
+    <div class="code-header">
+      <span>Command</span>
+      <button class="copy-btn" data-target="code-8a6f0b1d3f1b4b2b9e2f7c6a5d4c3b2a">Copy</button>
+    </div>
+    <pre><code id="code-8a6f0b1d3f1b4b2b9e2f7c6a5d4c3b2a" class="language-bash">pigz -dk gencode.v44.primary_assembly.annotation.gtf.gz
+pigz -dk GRCh38.primary_assembly.genome.fa.gz</code></pre>
+  </div>
+
+</section>
+
+</section>
+
+  <section id="build-star-index" class="doc-section">
+    <h2>Build STAR index</h2>  
+<p class="warning-note">
+      <img src="/static/images/warning.svg" alt="Warning" />
+      <span>From this point onward, all STAR index building and pipeline commands must be run inside your project directory (cd ~/my_rnaseq_project).</span>
+    </p>
+    <p>Create the STAR index folder directly under <code>reference/</code>:</p>
+    <div class="code-card"><div class="code-header"><span>Command</span><button class="copy-btn" data-target="code-f7ff75bd2f6e499faffc32be67463505">Copy</button></div><pre><code id="code-f7ff75bd2f6e499faffc32be67463505" class="language-bash">cd ~/my_rnaseq_project
+mkdir -p reference/STAR_index</code></pre></div>
+
+    <p>Build the STAR index:</p>
+    <div class="code-card"><div class="code-header"><span>Command (Standard)</span><button class="copy-btn" data-target="code-72d69b424c414a35a942dc0b03a1a4c8">Copy</button></div><pre><code id="code-72d69b424c414a35a942dc0b03a1a4c8" class="language-bash">
+STAR \
+  --runMode genomeGenerate \
+  --runThreadN 8 \
+  --genomeDir reference/STAR_index \
+  --genomeFastaFiles reference/GRCh38.primary_assembly.genome.fa \
+  --sjdbGTFfile reference/gencode.v44.primary_assembly.annotation.gtf \
+  --sjdbOverhang 100 \
+  --genomeSAindexNbases 14 \
+  --limitGenomeGenerateRAM 16000000000</code></pre></div>
+    <div class="code-card"><div class="code-header"><span>Command (low-RAM)</span><button class="copy-btn" data-target="code-3c4b6b2f0c2f4e6c8a7b1f5e9b2d4a6c">Copy</button></div><pre><code id="code-3c4b6b2f0c2f4e6c8a7b1f5e9b2d4a6c" class="language-bash">STAR \
+  --runMode genomeGenerate \
+  --runThreadN 4 \
+  --genomeDir reference/STAR_index \
+  --genomeFastaFiles reference/GRCh38.primary_assembly.genome.fa \
+  --sjdbGTFfile reference/gencode.v44.primary_assembly.annotation.gtf \
+  --sjdbOverhang 100 \
+  --genomeSAindexNbases 12 \
+  --genomeSAsparseD 2 \
+  --genomeChrBinNbits 18 \
+  2&gt;&amp;1 | tee output/star_genomeGenerate.lowram.log</code></pre></div>
+
+    <p class="warning-note">
+      <img src="/static/images/warning.svg" alt="Warning" />
+      <span>STAR index generation is critical and may take hours. Try the standard build first; if memory errors occur, use the low-RAM version, which uses a compact genome index and runs reliably on most personal PCs. The full set of STAR index folder is roughly 15 to 20 GB in size for the human genome.</span>
+    </p>
+  </section>
+
+  <section id="run-pipeline" class="doc-section">
+    <h2>Run the pipeline</h2>
+
+    <h3>1) Put FASTQ.gz into <code>fastqs/</code></h3>
+    <div class="code-card"><div class="code-header"><span>Command</span><button class="copy-btn" data-target="code-c6d32f3b68994c3d89590edf118b02d6">Copy</button></div><pre><code id="code-c6d32f3b68994c3d89590edf118b02d6" class="language-bash">ls fastqs/*.gz</code></pre></div>
+
+    <h3>2) Make sure the script is executable</h3>
+    <div class="code-card"><div class="code-header"><span>Command (No output means success) </span><button class="copy-btn" data-target="code-7f72cf6ee73f43c5b185c25a592a76d9">Copy</button></div><pre><code id="code-7f72cf6ee73f43c5b185c25a592a76d9" class="language-bash">chmod +x rnaseq_pipeline.sh</code></pre></div>
+
+    <h3>3) Run (Linux / Ubuntu / WSL2)</h3>
+    <div class="code-card"><div class="code-header"><span>Command</span><button class="copy-btn" data-target="code-34ca4bcc46424bff896259a0d7bd5daf">Copy</button></div><pre><code id="code-34ca4bcc46424bff896259a0d7bd5daf" class="language-bash">bash rnaseq_pipeline.sh \
+  -i fastqs \
+  -o rna_output \
+  -g reference/STAR_index \
+  -a reference/gencode.v44.primary_assembly.annotation.gtf \
+  -t 4 \
+  --stranded 0</code></pre></div>
+
+    <h3>4) Run (macOS using Brew Bash 4+/5)</h3>
+  
+    <p>Find your brew bash path:</p>
+    <div class="code-card"><div class="code-header"><span>Command</span><button class="copy-btn" data-target="code-2fa1dc05c63044dfa7be318d10318a44">Copy</button></div><pre><code id="code-2fa1dc05c63044dfa7be318d10318a44" class="language-bash">which -a bash</code></pre></div>
+
+    <p>Then run using the brew bash path (example shown):</p>
+    <div class="code-card"><div class="code-header"><span>Command</span><button class="copy-btn" data-target="code-7e6f0be3af5a40a5a6a7ea66032abac3">Copy</button></div><pre><code id="code-7e6f0be3af5a40a5a6a7ea66032abac3" class="language-bash">/opt/homebrew/bin/bash rnaseq_pipeline.sh \
+  -i fastqs \
+  -o rna_output\
+  -g reference/STAR_index \
+  -a reference/gencode.v44.primary_assembly.annotation.gtf \
+  -t 4 \
+  --stranded 0</code></pre></div>
+<p class="warning-note">
+      <img src="/static/images/warning.svg" alt="Warning" />
+      <span>Processing time varies by dataset and hardware; a paired  sample may take ~30+ minutes. If the job freezes, is killed, or shows errors, this usually indicates insufficient RAM. To solve this, reduce the thread value (-t, e.g., use 2), close other programs, or run the workflow on a higher RAM PC. If unsure, copy the error message into an AI tool for help resolving the memory issue. The default threads are set conservatively for personal PCs, but you can increase -t (e.g., 8) on stronger machines for faster execution.</span>
+  </section>
+
+  <section id="results" class="doc-section">
+    <h2>Where results are saved</h2>
+    <ul>
+      <li><code>rna_output/multiqc/multiqc_report.html</code> (open in browser)</li>
+      <li><code>rna_output/SUMMARY.tsv</code> (per-sample summary)</li>
+      <li><code>rna_output/counts/combined_counts.txt</code> (combined gene counts matrix)</li>
+    </ul>
+  </section>
+  
+    </p>
 
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.querySelectorAll(".copy-btn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const targetId = btn.getAttribute("data-target");
+      const codeEl = document.getElementById(targetId);
+      if (!codeEl) {
+        return;
+      }
+      const text = codeEl.innerText.replace(/\s+$/g, "");
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch (err) {
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(codeEl);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        document.execCommand("copy");
+        selection.removeAllRanges();
+      }
+      const original = btn.textContent;
+      btn.textContent = "Copied!";
+      btn.classList.add("copied");
+      setTimeout(() => {
+        btn.textContent = original;
+        btn.classList.remove("copied");
+      }, 1500);
+    });
+  });
+</script>
 {% endblock %}
