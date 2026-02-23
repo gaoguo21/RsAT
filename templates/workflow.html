@@ -151,11 +151,11 @@
 {% block content %}
 <div class="container">
   <div class="hero">
-    <h1>RNA-seq Pipeline</h1>
+    <h1>RNA-seq Workflow</h1>
     <p class="doc-intro">
       This resource provides a beginner-friendly, copy-paste-ready RNA-seq workflow optimized for personal PCs using:
       FastQC -> fastp -> STAR -> samtools -> featureCounts -> MultiQC.
-      The pipeline script supports Single-End and Paired-End FASTQ.gz inputs and produces BAMs, gene counts, and a MultiQC report.
+      The executable script supports Single-End and Paired-End FASTQ.gz inputs and produces BAMs, gene counts, and a MultiQC report.
     </p>
   </div>
 
@@ -180,7 +180,7 @@
   <h2>Download</h2>
 
   <p class="section-desc">
-    All pipeline files are hosted on GitHub for downloading
+    All workflow files are hosted on GitHub for downloading
     <a class="download-btn small" href="https://github.com/rsat2026/rnaseq_pipeline.git" target="_blank" rel="noopener">GitHub</a>.  You can choose one of the two options below.
   </p>
 
@@ -192,13 +192,13 @@ On GitHub, click <strong>Code</strong> button and choose <strong>Download ZIP</s
   </p>
 
   <!-- PIPELINE ONLY -->
-  <h3 style="margin-top:18px;">Option 2: Pipeline only</h3>
+  <h3 style="margin-top:18px;">Option 2: Main script only</h3>
   <p class="section-desc">
     If you only want the main script, download or copy <code>rnaseq_pipeline.sh</code> from the repository
     and follow the step-by-step instructions on this page.
   </p><p class="warning-note">
    <img src="/static/images/warning.svg" alt="Warning" />
-      <span>This pipeline has been successfully tested on local personal PCs, but it is still under active development and may require minor adjustments in some environments. If you encounter errors or issues, please report them to: rsat2026@gmail.com. Your input helps improve the tool.</span>
+      <span>This workflow has been successfully tested on local personal PCs, but it is still under active development and may require minor adjustments in some environments. If you encounter errors or issues, please report them to: rsat2026@gmail.com. Your input helps improve the tool.</span>
     </p>
 </section>
 
@@ -214,7 +214,7 @@ On GitHub, click <strong>Code</strong> button and choose <strong>Download ZIP</s
         <li><a href="#install-tools">Install required tools</a></li>
         <li><a href="#download-reference">Download genome FASTA + GTF (tested files)</a></li>
         <li><a href="#build-star-index">Build STAR index</a></li>
-        <li><a href="#run-pipeline">Run the pipeline</a></li>
+        <li><a href="#run-pipeline">Run the main script</a></li>
         <li><a href="#results">Where results are saved</a></li>
       </ul>
     </nav>
@@ -352,7 +352,7 @@ pigz -dk GRCh38.primary_assembly.genome.fa.gz</code></pre>
     <h2>Build STAR index</h2>  
 <p class="warning-note">
       <img src="/static/images/warning.svg" alt="Warning" />
-      <span>From this point onward, all STAR index building and pipeline commands must be run inside your project directory (cd ~/my_rnaseq_project).</span>
+      <span>From this point onward, all STAR index building and commands must be run inside your project directory (cd ~/my_rnaseq_project).</span>
     </p>
     <p>Create the STAR index folder directly under <code>reference/</code>:</p>
     <div class="code-card"><div class="code-header"><span>Command</span><button class="copy-btn" data-target="code-f7ff75bd2f6e499faffc32be67463505">Copy</button></div><pre><code id="code-f7ff75bd2f6e499faffc32be67463505" class="language-bash">cd ~/my_rnaseq_project
@@ -388,7 +388,7 @@ STAR \
   </section>
 
   <section id="run-pipeline" class="doc-section">
-    <h2>Run the pipeline</h2>
+    <h2>Run the main script</h2>
 
     <h3>1) Put FASTQ.gz into <code>fastqs/</code></h3>
     <div class="code-card"><div class="code-header"><span>Command</span><button class="copy-btn" data-target="code-c6d32f3b68994c3d89590edf118b02d6">Copy</button></div><pre><code id="code-c6d32f3b68994c3d89590edf118b02d6" class="language-bash">ls fastqs/*.gz</code></pre></div>
