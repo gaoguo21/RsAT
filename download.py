@@ -46,7 +46,7 @@ def _env_int(name: str, default: int) -> int:
 
 
 FILES = {
-    "mac": "GeneCountCraft_1.0.0.dmg",
+    "mac": "GeneCountCraft_1.0.0.jgp",
     "win": "windowsversion.jpg",
 }
 
