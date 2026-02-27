@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Download GeneCountCraft{% endblock %}
+
+{% block extra_css %}
+  <style>
+    .download-card {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 520px;
+      margin: 0 auto 30px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+    }
+
+    .download-form {
+      display: grid;
+      gap: 16px;
+    }
+
+    .os-group {
+      display: grid;
+      gap: 10px;
+    }
+
+    .os-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border: 1px solid #e0e5ef;
+      border-radius: 10px;
+      background: #f8fafc;
+    }
+
+    .flash-messages {
+      margin: 0 auto 18px;
+      max-width: 520px;
+    }
+
+    .flash-message {
+      background: #fff4f4;
+      border: 1px solid #f5bcbc;
+      color: #8a1f1f;
+      padding: 12px 14px;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .download-submit {
+      border: none;
+      background: #2e62ff;
+      color: white;
+      padding: 12px 18px;
+      border-radius: 10px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .download-submit:hover {
+      background: #244fe0;
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+  <div class="container">
+    <div class="hero">
+      <h1>GeneCountCraft</h1>
+      <p class="hero-desc">
+GeneCountCraft is a simple, no-coding application that converts FASTQ files to gene counts using Salmon alignment  on your personal computer.
+Just build your reference index once, then select your FASTQ files and click Run.
+No command line. No scripting. No complex setup.
+Fast, accurate, and designed to make RNA-seq processing effortless.
+      </p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-messages">
+          {% for category, message in messages %}
+            <div class="flash-message">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="download-card">
+      <form class="download-form" method="post" action="{{ url_for('download.download') }}">
+        <div class="os-group">
+          <label class="os-option">
+            <input type="radio" name="os" value="mac" {% if selected_os == 'mac' %}checked{% endif %} />
+            Mac
+          </label>
+          <label class="os-option">
+            <input type="radio" name="os" value="win" {% if selected_os == 'win' %}checked{% endif %} />
+            Windows
+          </label>
+        </div>
+
+        <div class="g-recaptcha" data-sitekey="{{ site_key }}"></div>
+
+        <button class="download-submit" type="submit">Download</button>
+      </form>
+    </div>
+  </div>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+{% endblock %}

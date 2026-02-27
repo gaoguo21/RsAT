@@ -1,5 +1,5 @@
-import os
-from flask import Flask, render_template, jsonify
+﻿import os
+from flask import Flask, render_template, jsonify, redirect, url_for
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -8,6 +8,10 @@ app = Flask(
     template_folder=os.path.join(BASE_DIR, "templates"),
     static_folder=os.path.join(BASE_DIR, "static"),
 )
+
+from download import download_bp
+app.register_blueprint(download_bp)
+
 
 def _env_int(name: str, default: int) -> int:
     raw = os.environ.get(name)
@@ -63,23 +67,103 @@ def home():
 
 @app.route("/deg")
 def deg_page():
+    return redirect(url_for("tool_deg"), code=301)
+
+@app.route("/online-tools/deg")
+def tool_deg():
     return render_template("deg.html")
 
 @app.route("/pathway")
 def pathway_page():
+    return redirect(url_for("tool_pathway"), code=301)
+
+@app.route("/online-tools/pathway")
+def tool_pathway():
     return render_template("pathway.html")
 
 @app.route("/id2symbol")
 def id2symbol_page():
+    return redirect(url_for("tool_id2symbol"), code=301)
+
+@app.route("/online-tools/id2symbol")
+def tool_id2symbol():
     return render_template("id2symbol.html")
 
 @app.route("/ssgsea")
 def ssgsea_page():
+    return redirect(url_for("tool_ssgsea"), code=301)
+
+@app.route("/online-tools/ssgsea")
+def tool_ssgsea():
     return render_template("ssgsea.html")
 
 @app.route("/tutorial")
 def tutorial_page():
-    return render_template("tutorial.html")
+    return redirect(url_for("tutorial_online_tools"), code=301)
+
+@app.route("/online-tools.html")
+def online_tools_html_page():
+    return redirect(url_for("online_tools_page"), code=301)
+
+@app.route("/online-tools")
+def online_tools_page():
+    return render_template("online-tools.html")
+
+@app.route("/tutorials.html")
+def tutorials_html_page():
+    return redirect(url_for("tutorials_page"), code=301)
+
+@app.route("/tutorials")
+def tutorials_page():
+    return render_template("tutorials.html")
+
+@app.route("/tutorials/online-tools-tutorial")
+def tutorial_online_tools():
+    return render_template("online-tools-tutorial.html")
+
+@app.route("/tutorials/workflow")
+def tutorial_workflow():
+    return render_template("workflow.html")
+
+@app.route("/guides")
+def guides_page():
+    return render_template("guides.html")
+
+@app.route("/guides.html")
+def guides_html_page():
+    return redirect(url_for("guides_page"), code=301)
+
+@app.route("/sources")
+def sources_page():
+    return render_template("sources.html")
+
+@app.route("/sources.html")
+def sources_html_page():
+    return redirect(url_for("sources_page"), code=301)
+
+@app.route("/tutorials/online-tools.html")
+def tutorial_online_tools_html_page():
+    return redirect(url_for("tutorial_online_tools"), code=301)
+
+@app.route("/tutorials/workflow.html")
+def tutorial_workflow_html_page():
+    return redirect(url_for("tutorial_workflow"), code=301)
+
+@app.route("/online-tools/deg.html")
+def online_tools_deg_html_page():
+    return redirect(url_for("tool_deg"), code=301)
+
+@app.route("/online-tools/pathway.html")
+def online_tools_pathway_html_page():
+    return redirect(url_for("tool_pathway"), code=301)
+
+@app.route("/online-tools/id2symbol.html")
+def online_tools_id2symbol_html_page():
+    return redirect(url_for("tool_id2symbol"), code=301)
+
+@app.route("/online-tools/ssgsea.html")
+def online_tools_ssgsea_html_page():
+    return redirect(url_for("tool_ssgsea"), code=301)
 
 @app.route("/workflow")
 def workflow_page():

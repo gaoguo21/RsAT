@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Online Tools{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="hero">
+    <h1>Online Tools</h1>
+    <p class="hero-desc">
+      Launch each tool directly in your browser. Upload your data, run the analysis, and download results.
+    </p>
+  </div>
+
+  <div class="cards">
+    <div class="card">
+      <h3>Differential Expression</h3>
+      <p>
+        Identify genes that are significantly differentially expressed between experimental conditions.
+        This tool compares expression levels, calculates fold changes, p-values, and adjusted p-values.
+      </p>
+      <a class="learn-link" href="{{ url_for('tool_deg') }}">Open Tool</a>
+    </div>
+
+    <div class="card">
+      <h3>Pathway Enrichment</h3>
+      <p>
+        Analyze biological pathways enriched in your ranked gene list to understand functional meaning.
+        This tool links differential expression results to pathways, processes, and molecular functions.
+      </p>
+      <a class="learn-link" href="{{ url_for('tool_pathway') }}">Open Tool</a>
+    </div>
+
+    <div class="card">
+      <h3>ID Converter</h3>
+      <p>
+        Map Ensembl Gene IDs (ENSG) and Entrez Gene IDs to official gene symbols.
+        Convert identifiers to keep gene annotations consistent across tools.
+      </p>
+      <a class="learn-link" href="{{ url_for('tool_id2symbol') }}">Open Tool</a>
+    </div>
+
+    <div class="card">
+      <h3>ssGSEA</h3>
+      <p>
+        Calculate enrichment scores for predefined gene sets in a single sample.
+        Rank all genes by expression to derive a relative enrichment score.
+      </p>
+      <a class="learn-link" href="{{ url_for('tool_ssgsea') }}">Open Tool</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

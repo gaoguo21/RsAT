@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Sources{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="hero">
+    <h1>Sources</h1>
+    <p class="hero-desc">
+      Curated external resources for reference genomes, annotations, datasets, and pathway libraries.
+    </p>
+  </div>
+
+  <div class="cards">
+    <div class="card">
+      <h3>Reference Genomes (GENCODE)</h3>
+      <p>High-quality human and mouse reference genomes and annotations.</p>
+      <a class="learn-link" href="https://www.gencodegenes.org/" target="_blank" rel="noopener">Visit GENCODE</a>
+    </div>
+
+    <div class="card">
+      <h3>Ensembl</h3>
+      <p>Genome browser and gene annotations for multiple species.</p>
+      <a class="learn-link" href="https://www.ensembl.org/" target="_blank" rel="noopener">Visit Ensembl</a>
+    </div>
+
+    <div class="card">
+      <h3>MSigDB Gene Sets</h3>
+      <p>Curated gene set collections for enrichment analysis.</p>
+      <a class="learn-link" href="https://www.gsea-msigdb.org/gsea/msigdb" target="_blank" rel="noopener">Visit MSigDB</a>
+    </div>
+
+    <div class="card">
+      <h3>Reactome Pathways</h3>
+      <p>Expert-curated pathway database with stable gene set downloads.</p>
+      <a class="learn-link" href="https://reactome.org/" target="_blank" rel="noopener">Visit Reactome</a>
+    </div>
+
+    <div class="card">
+      <h3>NCBI GEO</h3>
+      <p>Public expression datasets for exploration and benchmarking.</p>
+      <a class="learn-link" href="https://www.ncbi.nlm.nih.gov/geo/" target="_blank" rel="noopener">Visit GEO</a>
+    </div>
+
+    <div class="card">
+      <h3>NCBI SRA</h3>
+      <p>Raw sequencing reads for downloading and re-analysis.</p>
+      <a class="learn-link" href="https://www.ncbi.nlm.nih.gov/sra" target="_blank" rel="noopener">Visit SRA</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

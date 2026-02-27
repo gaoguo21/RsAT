@@ -106,14 +106,13 @@ gtag('config', 'G-3VQFER6MLE');
 }
 
 
-.hero-desc {
+.hero-desc{
   max-width: 820px;
-  margin: 16px auto 30px;
+  margin: 10px auto 6px;   /* <<< bottom margin smaller */
   font-size: 15px;
   color: #6b7280;
   line-height: 1.6;
 }
-
 
 .download-btn.small{
   padding:6px 12px;
@@ -121,8 +120,22 @@ gtag('config', 'G-3VQFER6MLE');
   border-radius:8px;
 }
 
+.new-badge{
+  color: #dc2626;      /* strong red */
+  font-weight: 700;    /* bold */
+  margin-right: 6px;   /* small space after NEW!!! */
+}
+
+.workflow-cta img{
+  height:28px;
+}
+
+
+
+
     .cards {
       display: grid;
+  margin-top: 0px;
       grid-template-columns: repeat(2, 1fr);
       gap: 20px;
     }
@@ -198,6 +211,38 @@ gtag('config', 'G-3VQFER6MLE');
       vertical-align: middle;
       margin: 0 6px;
     }
+
+
+.cookie-banner{
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: #111827;
+  color: #ffffff;
+  padding: 14px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 9999;
+  font-size: 14px;
+}
+
+.cookie-banner button{
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.cookie-banner button:hover{
+  background: #1d4ed8;
+}
+
+
+
   </style>
 
   {% block extra_css %}{% endblock %}
@@ -207,16 +252,18 @@ gtag('config', 'G-3VQFER6MLE');
   <!-- ===== NAVBAR ===== -->
   <div class="navbar">
     <div class="logo">
-      <img src="{{ url_for('static', filename='images/logoV3.png') }}" alt="RNA-seq Analysis Logo" />
+      <a href="{{ url_for('home') }}">
+        <img src="{{ url_for('static', filename='images/logoV3.png') }}" alt="RNA-seq Analysis Logo" />
+      </a>
     </div>
 
     <div class="nav-links">
       <a href="{{ url_for('home') }}" class="{% if request.path == '/' %}active{% endif %}">Main</a>
-      <a href="{{ url_for('deg_page') }}" class="{% if request.path.startswith('/deg') %}active{% endif %}">DEG</a>
-      <a href="{{ url_for('pathway_page') }}" class="{% if request.path.startswith('/pathway') %}active{% endif %}">Pathway</a>
-      <a href="{{ url_for('id2symbol_page') }}" class="{% if request.path.startswith('/id2symbol') %}active{% endif %}">ID2Symbol</a>
-      <a href="{{ url_for('ssgsea_page') }}" class="{% if request.path.startswith('/ssgsea') %}active{% endif %}">ssGSEA</a>
-      <a href="{{ url_for('workflow_page') }}" class="{% if request.path.startswith('/workflow') %}active{% endif %}">Sources</a>
+      <a href="{{ url_for('online_tools_page') }}" class="{% if request.path.startswith('/online-tools') %}active{% endif %}">Online Tools</a>
+      <a href="{{ url_for('tutorials_page') }}" class="{% if request.path.startswith('/tutorials') or request.path.startswith('/tutorial') %}active{% endif %}">Tutorials</a>
+      <a href="{{ url_for('guides_page') }}" class="{% if request.path.startswith('/guides') %}active{% endif %}">Guides</a>
+      <a href="{{ url_for('sources_page') }}" class="{% if request.path.startswith('/sources') %}active{% endif %}">Sources</a>
+      <a href="{{ url_for('download.download') }}" class="{% if request.path.startswith('/download') %}active{% endif %}">Download</a>
       {# Extraction will be added later #}
     </div>
   </div>
@@ -230,6 +277,29 @@ gtag('config', 'G-3VQFER6MLE');
     | rsat2026@gmail.com | <a href="/legal">Terms of Service &amp; Privacy Policy</a> 
   </footer>
 
+
+<!-- Cookie Banner -->
+<div id="cookie-banner" class="cookie-banner">
+  <p>
+    This website uses cookies for analytics and performance purposes.
+    By continuing to use this site, you agree to our use of cookies.
+  </p>
+  <button id="accept-cookies">Accept</button>
+</div>
+
+<script>
+  const banner = document.getElementById("cookie-banner");
+  const acceptBtn = document.getElementById("accept-cookies");
+
+  if(localStorage.getItem("cookiesAccepted")){
+      banner.style.display = "none";
+  }
+
+  acceptBtn.onclick = function(){
+      localStorage.setItem("cookiesAccepted", "true");
+      banner.style.display = "none";
+  };
+</script>
   {% block extra_js %}{% endblock %}
 </body>
 </html>

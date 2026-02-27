@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Tutorials{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="hero">
+    <h1>Tutorials</h1>
+    <p class="hero-desc">
+      Step-by-step walkthroughs for the online tools and the end-to-end RNA-seq workflow.
+    </p>
+  </div>
+
+  <div class="cards">
+    <div class="card">
+      <h3>Online Tools Tutorial</h3>
+      <p>
+        Input formats, example files, and practical tips for each online analysis tool.
+      </p>
+      <a class="learn-link" href="{{ url_for('tutorial_online_tools') }}">Open tutorial</a>
+    </div>
+
+    <div class="card">
+      <h3>Workflow</h3>
+      <p>
+        Full FASTQ-to-counts workflow using STAR, featureCounts, and MultiQC with copy-paste commands.
+      </p>
+      <a class="learn-link" href="{{ url_for('tutorial_workflow') }}">Open tutorial</a>
+    </div>
+
+    <div class="card">
+      <h3>GeneCountCraft Tutorial</h3>
+      <p>Install, setup, and run the desktop tools for local analysis.</p>
+      <span class="learn-link">Coming soon</span>
+    </div>
+
+    <div class="card">
+      <h3>Troubleshooting</h3>
+      <p>Common issues, error messages, and fixes across the tool suite.</p>
+      <span class="learn-link">Coming soon</span>
+    </div>
+  </div>
+</div>
+{% endblock %}

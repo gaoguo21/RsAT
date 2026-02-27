@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}RNA-seq Tools Tutorial{% endblock %}
+{% block title %}Online Tools Tutorial{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -26,6 +26,18 @@
   .section-desc {
     color: #555;
     line-height: 1.7;
+  }
+
+  .toc {
+    background: #f9fafc;
+    border: 1px solid #e1e5f0;
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+
+  .toc ul {
+    margin: 0;
+    padding-left: 18px;
   }
 
   .example-card {
@@ -80,12 +92,24 @@
 {% block content %}
 <div class="container">
   <div class="hero">
-    <h1>RNA-seq Tools Tutorial</h1>
+    <h1>Online Tools Tutorial</h1>
     <p class="doc-intro">
       This page walks through how to prepare inputs and run each tool. Use the examples below as templates,
       then adapt them to your data to get reliable results.
     </p>
   </div>
+
+  <section class="doc-section">
+    <h2>Table of contents</h2>
+    <nav class="toc">
+      <ul>
+        <li><a href="#deg">DEG: Differential Gene Expression</a></li>
+        <li><a href="#pathway">Pathway Analysis</a></li>
+        <li><a href="#id2symbol">ID2Symbol: ID Mapping</a></li>
+        <li><a href="#ssgsea">ssGSEA: Single-Sample GSEA</a></li>
+      </ul>
+    </nav>
+  </section>
 
   <section id="deg" class="doc-section">
     <h2>DEG: Differential Gene Expression</h2>
@@ -133,7 +157,7 @@ TP53	0.10</code></pre>
   <section id="id2symbol" class="doc-section">
     <h2>ID2Symbol: ID Mapping</h2>
     <p class="section-desc">
-      Supply Ensembl (ENSG) or Entrez IDs, one per line. Remove version suffixes like 鈥?1鈥?from Ensembl IDs
+      Supply Ensembl (ENSG) or Entrez IDs, one per line. Remove version suffixes like ".1" from Ensembl IDs
       and select the correct organism to avoid mismatches.
     </p>
 
@@ -173,13 +197,10 @@ MYC	8.2	8.0	7.8</code></pre>
     </div>
   </section>
 
-
   <p class="workflow-cta">
-    For those interested in the RNA-seq workflow and Sources,
-    <a href="/workflow">click here</a>.
+    For the FASTQ-to-counts workflow tutorial,
+    <a href="{{ url_for('tutorial_workflow') }}">click here</a>.
   </p>
-
-
 </div>
 {% endblock %}
 
@@ -215,6 +236,3 @@ MYC	8.2	8.0	7.8</code></pre>
   });
 </script>
 {% endblock %}
-
-
-
