@@ -69,12 +69,12 @@
     <div class="hero">
       <h1>GeneCountCraft</h1>
       <p class="hero-desc">
-GeneCountCraft is a simple, no-coding application that converts FASTQ files to gene counts using Salmon alignment  on your personal computer.
+GeneCountCraft is a simple, no-coding application that converts FASTQ reads to gene counts using Salmon alignment  on your personal computer.
 Just build your reference index once, then select your FASTQ files and click Run.
 No command line. No scripting. No complex setup.
 Fast, accurate, and designed to make RNA-seq processing effortless.
       </p>
-<p>Still working on it, testing phase</p>
+<p>MacOS version coming soon!</p>
     </div>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -92,7 +92,7 @@ Fast, accurate, and designed to make RNA-seq processing effortless.
         <div class="os-group">
           <label class="os-option">
             <input type="radio" name="os" value="mac" {% if selected_os == 'mac' %}checked{% endif %} />
-            Mac
+           MacOS
           </label>
           <label class="os-option">
             <input type="radio" name="os" value="win" {% if selected_os == 'win' %}checked{% endif %} />
@@ -104,8 +104,12 @@ Fast, accurate, and designed to make RNA-seq processing effortless.
 
         <button class="download-submit" type="submit">Download</button>
       </form>
-    </div>
+  <p><strong>Important:</strong> Windows users must install WSL with Ubuntu before running GeneCountCraft.</p>
+<a class="learn-link" href="{{ url_for('tutorial_genecountcraft') }}">View the tutorial</a>
+
   </div>
+
+
 {% endblock %}
 
 {% block extra_js %}

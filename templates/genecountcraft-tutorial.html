@@ -1,0 +1,335 @@
+{% extends "base.html" %}
+{% block title %}GeneCountCraft (Windows) Tutorial{% endblock %}
+
+{% block extra_css %}
+<style>
+  .doc-intro {
+    max-width: 900px;
+    margin: 0 auto 20px;
+    color: #444;
+    line-height: 1.7;
+  }
+
+  .doc-section {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 22px;
+  }
+
+  .doc-section h2 {
+    margin-top: 0;
+    font-size: 26px;
+  }
+
+  .section-desc {
+    color: #555;
+    line-height: 1.7;
+  }
+
+  .toc {
+    background: #f9fafc;
+    border: 1px solid #e1e5f0;
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+
+  .toc ul {
+    margin: 0;
+    padding-left: 18px;
+  }
+
+  .example-card {
+    border: 1px solid #e1e5f0;
+    border-radius: 10px;
+    margin: 16px 0 18px;
+    overflow: hidden;
+    background: #f9fafc;
+  }
+
+  .example-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid #e1e5f0;
+    background: #f2f4f8;
+    font-weight: 700;
+  }
+
+  .example-card pre {
+    margin: 0;
+    padding: 14px;
+    overflow-x: auto;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* Tutorial image placeholder */
+  .img-placeholder {
+    border: 1px dashed #cbd5e1;
+    border-radius: 10px;
+    background: #fff;
+    padding: 14px;
+    margin: 14px 0 16px;
+    color: #64748b;
+    font-size: 14px;
+  }
+
+  .img-placeholder .hint {
+    margin-top: 6px;
+    font-size: 13px;
+    color: #94a3b8;
+  }
+
+.line-break {
+  display: block;
+}
+
+  .copy-btn {
+    border: none;
+    background: #2e62ff;
+    color: white;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 13px;
+  }
+
+  .copy-btn.copied {
+    background: #1f4ee3;
+  }
+
+  @media (max-width: 820px) {
+    .doc-section {
+      padding: 20px;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="hero">
+    <h1>GeneCountCraft Tutorial</h1>
+    <p class="doc-intro">
+      This page walks through the workflow for GeneCountCraft: one-time WSL setup (Windows only), building the Salmon index,
+      selecting FASTQ input, choosing output, and running quantification.
+    </p>
+  </div>
+
+  <!-- Step 1 -->
+  <section id="step1" class="doc-section">
+    <h2>1) One-time setup: Install WSL + Ubuntu (Windows only)</h2>
+    <p class="section-desc">
+      GeneCountCraft runs Salmon through WSL (Windows Subsystem for Linux).
+    </p>
+
+    <div class="example-card">
+      <div class="example-header">
+        <span>What to do</span>
+      </div>
+      <pre><code>1. Install WSL (Windows Subsystem for Linux) and Ubuntu by opening Windows Command Prompt (CMD) or PowerShell and running: wsl --install -d Ubuntu.
+2. Reboot computer.
+3. Open Ubuntu from the Start menu once.
+4. Complete the first-time Ubuntu setup (create a username and password).
+5. Close Ubuntu. This is only needed once.</code></pre>
+</p><p class="warning-note">
+   <img src="/static/images/warning.svg" alt="Warning" />
+      <span>If Ubuntu does not install correctly the first time after reboot, run the same command again, complete the setup by creating your username and password. </span>
+    </p>
+    </div>
+  </section>
+
+  <!-- Step 2 -->
+  <section id="step2" class="doc-section">
+    <h2>2) Launch GeneCountCraft</h2>
+    <p class="section-desc">
+      Double-click the GeneCountCraft icon to start the application.
+    </p>
+
+    <div class="doc-image">
+      <img
+        src="{{ url_for('static', filename='images/icon.png') }}"
+        alt="Launch GeneCountCraft on Windows" width="150">
+    </div>
+  </section>
+
+  <!-- Step 3 -->
+  <section id="step3" class="doc-section">
+    <h2>3) Build the index</h2>
+   
+    <p class="section-desc">
+      Building the Salmon index is required before running quantification. You typically do this once per organism/reference.
+    </p>
+
+ <p class="section-desc">
+      You have the option to rebuild; check Force Rebuild if needed. Rebuilding the index will overwrite the existing one.
+    </p>
+
+
+    <div class="example-card">
+      <div class="example-header">
+        <span>Step-by-step</span>
+      </div>
+      <pre><code>1. Choose an Organism (e.g., Human (Homo sapiens)).
+2. Click BUILD INDEX.
+3. Wait until the status indicates the index is ready (Index Ready).
+</code></pre>
+    </div>
+  <div class="doc-image">
+      <img
+        src="{{ url_for('static', filename='images/GCC01.png') }}"
+        alt="Launch GeneCountCraft on Windows" width="750">
+    <img
+        src="{{ url_for('static', filename='images/IndexReady.png') }}"
+        alt="Launch GeneCountCraft on Windows" width="750">  
+ </div>
+  </section>
+
+  <!-- Step 4 -->
+  <section id="step4" class="doc-section">
+    <h2>4) Choose Mode (paired-end or single-end); 
+  <span class="line-break">Set threads (optional)</span></h2>
+    <p class="section-desc">
+      Select the sequencing mode that matches your data.
+         </p>
+  <p class="section-desc">
+           Threads controls how many CPU threads are used. The default is 8, and you can adjust based on your PC.
+    </p>
+
+    <div class="example-card">
+      <div class="example-header">
+           <span>Guidance</span>
+      </div>
+      <pre><code>- Default: 8 threads (recommended starting point).
+- Increase threads for faster runs if your PC has more CPU cores.
+- Decrease threads if your PC becomes slow or unresponsive.</code></pre>
+    </div>
+ <div class="doc-image">
+      <img
+        src="{{ url_for('static', filename='images/GCC02.png') }}"
+        alt="Launch GeneCountCraft on Windows" width="750">
+    </div>
+  </section>
+
+
+  <!-- Step 5 -->
+  <section id="step5" class="doc-section">
+    <h2>5) Select FASTQ folder <span class="line-break">Select output folder (optional)</span></h2>
+    <p class="section-desc">
+      Choose the folder that contains your FASTQ/FASTQ.GZ files. GeneCountCraft scans the folder and lists the detected files
+      in the output window (Shown in Windows only).  
+    </p>
+    <p class="section-desc">
+      GeneCountCraft uses a default output directory. You can keep the default or choose your own output folder. The selected output directory will be shown in the interface.
+    </p>
+
+
+    <div class="example-card">
+      <div class="example-header">
+        <span>Step-by-step</span>
+      </div>
+      <pre><code>1. Click SELECT FASTQ.
+2. Choose the folder that contains your FASTQ files (e.g., *.fastq.gz).
+3. Confirm the detected files appear in the output window (Windows only).</code></pre>
+    </div>
+
+  <div class="doc-image">
+      <img
+        src="{{ url_for('static', filename='images/SelectFastq.png') }}"
+        alt="Launch GeneCountCraft on Windows" width="750">
+    </div>
+  </section>
+
+
+  <!-- Step 6-->
+  <section id="step8" class="doc-section">
+    <h2>7 Run quantification</h2>
+     
+    <p class="section-desc">
+      Start quantification and monitor progress in the output window. Results will be written to your output folder. 
+    </p>
+
+    <div class="example-card">
+      <div class="example-header">
+        <span>Step-by-step</span>
+      </div>
+      <pre><code>1. Click RUN.
+2. Watch the output window for progress messages.
+3. When finished, check the output folder for results.  
+<em>expression_matrix.txt contains all samples combined.
+quant.sf is generated separately for each sample within its respective folder.</em></code></pre>
+    </div>
+ <div class="doc-image">
+      <img
+        src="{{ url_for('static', filename='images/GCCrun.png') }}"
+        alt="Launch GeneCountCraft on Windows" width="750">
+    </div>
+  <div class="doc-image">
+      <img
+        src="{{ url_for('static', filename='images/running.png') }}"
+        alt="Launch GeneCountCraft on Windows" width="750">
+    </div>
+  <div class="doc-image">
+      <img
+        src="{{ url_for('static', filename='images/done.png') }}"
+        alt="Launch GeneCountCraft on Windows" width="750">
+    </div>
+  </section>
+
+  <!-- Practical tips -->
+  <section id="tips" class="doc-section">
+    <h2>Practical tips</h2>
+    <p class="section-desc">
+      Use the tips below to avoid common issues and get reliable results.
+    </p>
+
+    <div class="example-card">
+      <div class="example-header">
+        <span>Tips</span>
+      </div>
+      <pre><code>- Start small: test with a small dataset first to confirm the full workflow works.
+- Then scale up: once the small test finishes successfully, run larger datasets.
+- Disk space: indexes and outputs can be large; use a drive with sufficient free space.
+- Keep FASTQs local if possible: local folders typically run faster than cloud-synced folders.
+- If results look unexpected, confirm the selected Mode matches your sequencing data.</code></pre>
+    </div>
+  </section>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.querySelectorAll(".copy-btn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const targetId = btn.getAttribute("data-target");
+      const codeEl = document.getElementById(targetId);
+      if (!codeEl) {
+        return;
+      }
+      const text = codeEl.innerText.replace(/\s+$/g, "");
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch (err) {
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(codeEl);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        document.execCommand("copy");
+        selection.removeAllRanges();
+      }
+      const original = btn.textContent;
+      btn.textContent = "Copied!";
+      btn.classList.add("copied");
+      setTimeout(() => {
+        btn.textContent = original;
+        btn.classList.remove("copied");
+      }, 1500);
+    });
+  });
+</script>
+{% endblock %}

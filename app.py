@@ -125,6 +125,10 @@ def tutorial_online_tools():
 def tutorial_workflow():
     return render_template("workflow.html")
 
+@app.route("/tutorials/genecountcraft-tutorial")
+def tutorial_genecountcraft():
+    return render_template("genecountcraft-tutorial.html")
+
 @app.route("/guides")
 def guides_page():
     return render_template("guides.html")
@@ -176,6 +180,10 @@ def extraction_page():
 @app.route("/legal")
 def legal_page():
     return render_template("legal.html")
+
+@app.route("/index/applegal")
+def applegal_page():
+    return render_template("applegal.html")
 
 @app.route("/job/<job_id>/status")
 def job_status(job_id):
